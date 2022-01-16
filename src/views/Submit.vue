@@ -20,7 +20,11 @@
             ></a-select>
           </a-form-item>
           <a-form-item label="作业文件" name="fileList">
-            <a-upload v-model:fileList="fileList" :beforeUpload="() => false">
+            <a-upload
+              v-model:fileList="fileList"
+              :beforeUpload="() => false"
+              @change="fileList = fileList.slice(-1)"
+            >
               <a-button>选择文件</a-button>
             </a-upload>
           </a-form-item>
@@ -37,7 +41,7 @@
 </style>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import { onMounted, reactive, Ref, ref } from "vue";
 import { useRouter } from "vue-router";
 import { getAssignmentList, submitAssignment } from "../DAL";
 import { localStorageVariable } from "../utils";
@@ -51,7 +55,7 @@ if (studentId.value === "") router.push("/login");
 
 const assignmentId = ref("");
 const assignmentLoading = ref(true);
-const assignmentOptions = ref([]);
+const assignmentOptions: Ref<{ value: number | string }[]> = ref([]);
 
 onMounted(() =>
   getAssignmentList().then((list) => {
@@ -60,7 +64,7 @@ onMounted(() =>
   })
 );
 
-const fileList = ref([]);
+const fileList: Ref<Array<{ originFileObj: File }>> = ref([]);
 
 const formRef = ref();
 const formState = reactive({ assignmentId, fileList });
@@ -74,6 +78,7 @@ function onSubmit() {
   formRef.value
     .validate()
     .then(() => {
+      console.log(fileList.value);
       submitAssignment(
         studentId.value,
         assignmentId.value,

@@ -61,7 +61,7 @@ async function tryLogin() {
     studentName.value = info.name;
     isAdmin.value = info.isAdmin.toString();
     status.value = "";
-  } catch (e) {
+  } catch (e: any) {
     if (e.response?.status == 401) {
       status.value = "error";
       statusInfo.value = "Token不存在或已过期";

@@ -149,7 +149,7 @@ const reviewerOptions = [
 
 const assignmentId = localStorageVariable("assignmentId", "");
 const assignmentLoading = ref(true);
-const assignmentOptions = ref([]);
+const assignmentOptions: Ref<{ value: number | string }[]> = ref([]);
 
 const mistakes: { [key: number]: Array<string> } = reactive({});
 

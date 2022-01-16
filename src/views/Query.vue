@@ -12,7 +12,7 @@
         </a-descriptions>
         <a-table
           :columns="columns"
-          :row-key="(record) => record.assignmentId"
+          row-key="assignmentId"
           :data-source="summary"
           :pagination="false"
         >
@@ -34,9 +34,13 @@
 </style>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, Ref, ref } from "vue";
 import { useRouter } from "vue-router";
-import { getSubmissionSummary, GradeDisplayStrings } from "../DAL";
+import {
+  getSubmissionSummary,
+  GradeDisplayStrings,
+  StudentSubmissionSummary,
+} from "../DAL";
 import { localStorageVariable } from "../utils";
 
 const router = useRouter();
@@ -70,10 +74,10 @@ const columns = [
     dataIndex: "comment",
   },
 ];
-const summary = ref([]);
+const summary: Ref<StudentSubmissionSummary[]> = ref([]);
 onMounted(() => {
-  getSubmissionSummary(studentId.value).then(
-    (value) => (summary.value = value)
-  );
+  getSubmissionSummary(studentId.value).then((value) => {
+    summary.value = value;
+  });
 });
 </script>
