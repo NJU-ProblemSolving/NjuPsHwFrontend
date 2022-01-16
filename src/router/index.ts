@@ -2,15 +2,26 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 
 const routes = [
   {
-    path: '/',
-    name: 'Home',
-    component: () => import('@/views/Review.vue')
+    path: '/login',
+    alias: '/',
+    name: 'Login',
+    component: () => import('@/views/Login.vue'),
+  },
+  {
+    path: '/submit',
+    name: 'Submit',
+    component: () => import('@/views/Submit.vue'),
+  },
+  {
+    path: '/query',
+    name: 'Query',
+    component: () => import('@/views/Query.vue'),
   },
   {
     path: '/review',
     name: 'Review',
-    component: () => import('@/views/Review.vue')
-  }
+    component: () => import('@/views/Review.vue'),
+  },
 ]
 
 const router = createRouter({

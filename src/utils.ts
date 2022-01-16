@@ -17,8 +17,19 @@ export function getUrlParam(param: string): string | undefined {
     return res ? res[1] : undefined
 }
 
+let refOfVariables = new Map()
 export function localStorageVariable(name: string, defaultValue: string): Ref<string> {
+    if (refOfVariables.has(name)) return refOfVariables.get(name)
     const res = ref(localStorage.getItem(name) ?? defaultValue)
     watch(res, (value) => value === null ? localStorage.removeItem(name) : localStorage.setItem(name, value))
+    refOfVariables.set(name, res)
     return res
+}
+
+export function invokeDownload(url: string, filename: string | null = null) {
+    var a = document.createElement('a');
+    a.href = url;
+    if (typeof filename === 'string')
+        a.download = filename;
+    a.click();
 }

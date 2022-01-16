@@ -1,22 +1,32 @@
 <template>
   <div>
-    <a-form :label-col="{ span: 3 }" :wrapper-col="{ span: 3 }">
-      <a-form-item label="评阅人">
-        <a-select
-          v-model:value="reviewerId"
-          :options="reviewerOptions"
-        ></a-select>
-      </a-form-item>
-      <a-form-item label="作业">
-        <a-select
-          v-model:value="assignmentId"
-          :options="assignmentOptions"
-          :loading="assignmentLoading"
-        ></a-select>
-      </a-form-item>
-    </a-form>
+    <a-row>
+      <a-col span="12">
+        <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 6 }">
+          <a-form-item label="评阅人">
+            <a-select
+              v-model:value="reviewerId"
+              :options="reviewerOptions"
+              :disabled="requesting"
+            ></a-select>
+          </a-form-item>
+          <a-form-item label="作业">
+            <a-select
+              v-model:value="assignmentId"
+              :options="assignmentOptions"
+              :loading="assignmentLoading"
+              :disabled="requesting"
+            ></a-select>
+          </a-form-item>
+        </a-form>
+      </a-col>
+      <a-col span="12">
+        <a-button type="primary" @click="downloadReview">下载作业压缩包</a-button>
+      </a-col>
+    </a-row>
 
     <a-table
+      v-show="dataSource.length > 0"
       :columns="columns"
       :data-source="dataSource"
       row-key="studentId"
@@ -46,7 +56,9 @@
           v-model:value="record.hasCorrected"
           mode="multiple"
           :token-separators="[',', ' ', ';']"
-          :options="record.mistakes"
+          :options="
+            (mistakes[record.studentId] ?? []).map((x) => ({ value: x }))
+          "
         >
         </a-select>
       </template>
@@ -65,20 +77,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, computed, getCurrentInstance, Ref } from 'vue';
-import axios, { AxiosError } from 'axios';
-import { useRouter } from 'vue-router';
-import { debounce, localStorageVariable } from '../utils';
-import sha1 from 'sha1';
+import { ref, Ref, reactive, watch, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { debounce, invokeDownload, localStorageVariable } from "../utils";
+import sha1 from "sha1";
 import {
+  getMistakeInfo,
   getReviewInfo,
   postReviewInfo,
   ReviewInfo,
-  tryLoginByToken,
   GradeDisplayStrings,
   getAssignmentList,
-} from '../DAL';
-import { Modal } from 'ant-design-vue';
+  apiPrefix,
+} from "../DAL";
+import { Modal } from "ant-design-vue";
 
 const router = useRouter();
 
@@ -87,86 +99,109 @@ const MyRequestWrapper = async <T>(
   func: () => Promise<T>
 ): Promise<T | undefined> => {
   try {
+    console.log("Requesing");
     if (requesting.value === true) {
-      throw Error('Multiple request');
+      throw Error("Multiple request");
     }
 
     requesting.value = true;
     return await func();
   } catch (error: any) {
     if (error.response?.status == 401) {
-      router.push('/Login');
+      router.push("/Login");
+    } else if (error.response?.status === 403) {
+      Modal.error({
+        title: () => error.message,
+        content: () => "需要管理员权限",
+      });
     } else {
       Modal.error({
         title: () => error.message,
-        content: () => error.data ?? '',
+        content: () => error.data ?? "",
       });
-      if (typeof error.toJSON === 'undefined')
-      console.error(error.toJSON());
+      if (typeof error.toJSON !== "undefined") console.error(error.toJSON);
+      else console.error(error);
     }
   } finally {
     requesting.value = false;
   }
 };
 
-const reviewerId = localStorageVariable('reviewerId', '1');
+const reviewerId = localStorageVariable("reviewerId", "1");
 const reviewerOptions = [
   {
-    value: '1',
-    label: '李晗',
+    value: "1",
+    label: "李晗",
   },
   {
-    value: '2',
-    label: '桑百惠',
+    value: "2",
+    label: "桑百惠",
   },
   {
-    value: '3',
-    label: '赵超懿',
+    value: "3",
+    label: "赵超懿",
   },
   {
-    value: '4',
-    label: '姚梦雨',
+    value: "4",
+    label: "姚梦雨",
   },
 ];
 
-const assignmentId = localStorageVariable('assignmentId', '');
+const assignmentId = localStorageVariable("assignmentId", "");
 const assignmentLoading = ref(true);
-const assignmentOptions = reactive([]);
-MyRequestWrapper(() =>
-  getAssignmentList().then((list) => {
-    assignmentOptions.values = list.map((x) => ({ value: x }));
-    assignmentLoading.value = false;
+const assignmentOptions = ref([]);
+
+const mistakes: { [key: number]: Array<string> } = reactive({});
+
+onMounted(() =>
+  MyRequestWrapper(() => {
+    let req = [
+      getAssignmentList().then((list) => {
+        assignmentLoading.value = false;
+        assignmentOptions.value = list.map((x) => ({ value: x.id }));
+      }),
+      getMistakeInfo().then((list) =>
+        list.forEach((x) => (mistakes[x.studentId] = x.mistakes))
+      ),
+    ];
+    if (assignmentId.value != "") {
+      req.push(fetchReview());
+    }
+    return Promise.all(req);
   })
 );
 
+watch(reviewerId, () => MyRequestWrapper(fetchReview));
+watch(assignmentId, () => MyRequestWrapper(fetchReview));
+
 const columns = [
   {
-    title: '学号',
-    dataIndex: 'studentId',
-    key: 'studentId',
+    title: "学号",
+    dataIndex: "studentId",
+    key: "studentId",
   },
   {
-    title: '姓名',
-    dataIndex: 'studentName',
-    key: 'studentName',
+    title: "姓名",
+    dataIndex: "studentName",
+    key: "studentName",
   },
   {
-    title: '评分',
-    dataIndex: 'grade',
-    key: 'grade',
-    slots: { customRender: 'grade' },
+    title: "评分",
+    dataIndex: "grade",
+    key: "grade",
+    slots: { customRender: "grade" },
   },
   {
-    title: '需订正',
-    dataIndex: 'needCorrection',
-    key: 'needCorrection',
-    slots: { customRender: 'needCorrection' },
+    title: "需订正",
+    dataIndex: "needCorrection",
+    key: "needCorrection",
+    slots: { customRender: "needCorrection" },
   },
   {
-    title: '已订正',
-    dataIndex: 'hasCorrected',
-    key: 'hasCorrected',
-    slots: { customRender: 'hasCorrected' },
+    title: "已订正",
+    dataIndex: "hasCorrected",
+    key: "hasCorrected",
+    slots: { customRender: "hasCorrected" },
   },
 ];
 
@@ -182,7 +217,8 @@ const needCorrectionOptions = computed(() => {
 
 let dataSource: Ref<ReviewInfo[]> = ref([]);
 let dataChanged: ReviewInfo[] = [];
-MyRequestWrapper(() =>
+const fetchReview = async () => {
+  dataSource.value = [];
   getReviewInfo(assignmentId.value, reviewerId.value).then((resp) => {
     resp.sort((a, b) => a.studentId - b.studentId);
     dataSource.value = resp.map((row) => {
@@ -197,21 +233,21 @@ MyRequestWrapper(() =>
       return rowRef;
     });
     UpdateFingerPrint();
-  })
-);
+  });
+};
 
-const lastSync = ref('');
-const localFingerPrint = ref('');
+const lastSync = ref("");
+const localFingerPrint = ref("");
 const UpdateFingerPrint = () => {
   localFingerPrint.value = sha1(
-    JSON.stringify(dataSource.value).replace(/,'mistakes':\[.*?\]/g, '')
+    JSON.stringify(dataSource.value).replace(/,'mistakes':\[.*?\]/g, "")
   );
   const now = new Date();
   lastSync.value =
     `${now.getMonth() + 1}.${now.getDate()} ` +
-    `${('0' + now.getHours()).substr(-2)}:` +
-    `${('0' + now.getMinutes()).substr(-2)}:` +
-    `${('0' + now.getSeconds()).substr(-2)}`;
+    `${("0" + now.getHours()).substr(-2)}:` +
+    `${("0" + now.getMinutes()).substr(-2)}:` +
+    `${("0" + now.getSeconds()).substr(-2)}`;
 };
 const SendChanges = debounce(async () => {
   const dataToSend = dataChanged;
@@ -228,5 +264,13 @@ const SendChanges = debounce(async () => {
         dataChanged = dataChanged.concat(NoModifyDuringRequest);
       })
   );
-}, 3000);
+}, 500);
+
+function downloadReview() {
+  invokeDownload(
+    apiPrefix +
+      `/Review/Archieve?assignmentId=${assignmentId.value}&reviewerId=${reviewerId.value}`,
+    `${assignmentId}.zip`
+  );
+}
 </script>

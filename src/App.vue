@@ -1,10 +1,17 @@
 <template>
-  <a-layout>
+  <a-layout class="layout">
     <a-layout-header class="header">
       <div class="title">问题求解作业平台</div>
       <a-menu theme="dark" mode="horizontal">
-        <a-menu-item key="1" @click="router.push('/')">提交</a-menu-item>
-        <a-menu-item key="2" @click="router.push('/Review')">查询</a-menu-item>
+        <a-menu-item key="0" @click="router.push('/login')">登录</a-menu-item>
+        <a-menu-item key="1" @click="router.push('/submit')">提交</a-menu-item>
+        <a-menu-item key="2" @click="router.push('/query')">查询</a-menu-item>
+        <a-menu-item
+          key="3"
+          v-if="isAdmin === 'true'"
+          @click="router.push('/review')"
+          >评阅</a-menu-item
+        >
       </a-menu>
     </a-layout-header>
     <a-layout-content class="content">
@@ -17,6 +24,9 @@
 </template>
 
 <style>
+.layout {
+  min-height: 100vh;
+}
 .title {
   color: whitesmoke;
   font-size: 1.25rem;
@@ -26,13 +36,12 @@
 .content {
   padding: 20px 50px;
 }
-#app {
-  text-align: center;
-  vertical-align: middle;
-}
 </style>
 
 <script setup lang="ts">
 import { useRouter } from "vue-router";
+import { localStorageVariable } from "./utils";
 const router = useRouter();
+const isAdmin = localStorageVariable("isAdmin", "false");
+console.log(isAdmin);
 </script>

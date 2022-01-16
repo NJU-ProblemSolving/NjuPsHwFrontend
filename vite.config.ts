@@ -39,7 +39,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://host.lihan.fun:32109/',
+        // target: 'https://host.lihan.fun:32109/',
+        target: 'http://172.29.208.1:8080/',
         changeOrigin: true,
       }
     }
