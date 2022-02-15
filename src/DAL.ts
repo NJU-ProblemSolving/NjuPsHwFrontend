@@ -40,6 +40,7 @@ export async function tryLoginByToken(token: string): Promise<AccountInfo> {
 
 export interface Assignment {
     id: number,
+    name: number,
     numberOfProblems: string,
     deadline: string,
 }
@@ -53,13 +54,19 @@ export async function getAssignmentList(): Promise<Array<Assignment>> {
 ** Mistake
 */
 
-export interface MistakeInfo {
-    studentId: number,
-    mistakes: Array<string>,
+export interface ProblemDTO {
+    assignmentId: number,
+    problemId: number,
+    display: string,
 }
 
-export async function getMistakeInfo(): Promise<MistakeInfo[]> {
-    return (await instance.get<MistakeInfo[]>('/Mistake')).data
+export interface MistakesOfStudent {
+    studentId: number,
+    mistakes: Array<ProblemDTO>,
+}
+
+export async function getMistakeInfo(): Promise<MistakesOfStudent[]> {
+    return (await instance.get<MistakesOfStudent[]>('/Mistake')).data
 }
 
 /*
@@ -71,8 +78,8 @@ export interface ReviewInfo {
     studentName: string,
     submittedAt: string,
     grade: Grade,
-    needCorrection: Array<string>,
-    hasCorrected: Array<string>,
+    needCorrection: Array<ProblemDTO>,
+    hasCorrected: Array<ProblemDTO>,
     comment: string,
     track: string,
 }
@@ -89,21 +96,23 @@ export async function postReviewInfo(assignmentId: number | string, data: Review
 */
 
 export interface StudentSubmissionSummary {
-    assignmentId:number,
+    assignmentId: number,
     grade: Grade,
-    needCorrection: Array<string>,
-    hasCorrected: Array<string>,
+    needCorrection: Array<ProblemDTO>,
+    hasCorrected: Array<ProblemDTO>,
     comment: string,
 }
 export async function getSubmissionSummary(studentId: number | string): Promise<StudentSubmissionSummary[]> {
     return (await instance.get<StudentSubmissionSummary[]>(`/Student/${studentId}/SubmissionSummary`)).data
 }
 
-export async function submitAssignment(studentId: number| string, assignmentId :number|string, file: File) {
+export async function submitAssignment(studentId: number | string, assignmentId: number | string, file: File) {
+    if (file.size > 3 * 1024 * 1024) throw { message: "上传文件过大" };
+
     const formData = new FormData();
     formData.append("studentId", studentId.toString());
     formData.append("assignmentId", assignmentId.toString());
     formData.append("file", file);
-    
+
     await instance.post(`/Submission/Submit`, formData)
 }

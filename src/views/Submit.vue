@@ -10,14 +10,16 @@
           :rules="rules"
         >
           <a-form-item label="学号" name="studentId">
-            {{ studentId }}
+            <a-input
+              v-if="isAdmin === 'true'"
+              v-model:value="studentId"
+            ></a-input>
+            <p v-else>{{ studentId }}</p>
           </a-form-item>
           <a-form-item label="作业编号" name="assignmentId">
-            <a-select
+            <assignment-selector
               v-model:value="assignmentId"
-              :options="assignmentOptions"
-              :loading="assignmentLoading"
-            ></a-select>
+            ></assignment-selector>
           </a-form-item>
           <a-form-item label="作业文件" name="fileList">
             <a-upload
@@ -41,28 +43,22 @@
 </style>
 
 <script setup lang="ts">
-import { onMounted, reactive, Ref, ref } from "vue";
+import { reactive, Ref, ref } from "vue";
 import { useRouter } from "vue-router";
-import { getAssignmentList, submitAssignment } from "../DAL";
+import { submitAssignment } from "../DAL";
 import { localStorageVariable } from "../utils";
 import { Modal } from "ant-design-vue";
+import AssignmentSelector from '../components/AssignmentSelector.vue'
 
 const router = useRouter();
 
-const studentId = localStorageVariable("studentId", "");
+let studentId = localStorageVariable("studentId", "");
 const studentName = localStorageVariable("studentName", "");
+const isAdmin = localStorageVariable("isAdmin", "false");
+if (isAdmin.value === "true") studentId = ref(studentId.value);
 if (studentId.value === "") router.push("/login");
 
 const assignmentId = ref("");
-const assignmentLoading = ref(true);
-const assignmentOptions: Ref<{ value: number | string }[]> = ref([]);
-
-onMounted(() =>
-  getAssignmentList().then((list) => {
-    assignmentLoading.value = false;
-    assignmentOptions.value = list.map((x) => ({ value: x.id }));
-  })
-);
 
 const fileList: Ref<Array<{ originFileObj: File }>> = ref([]);
 
@@ -73,8 +69,7 @@ const rules = {
   fileList: [{ required: true, message: "请上传作业文件" }],
 };
 
-function onSubmit() {
-  console.log("hhh");
+const onSubmit = () => {
   formRef.value
     .validate()
     .then(() => {
@@ -83,11 +78,12 @@ function onSubmit() {
         studentId.value,
         assignmentId.value,
         fileList.value[0].originFileObj
-      ).catch((err) =>
+      ).catch((err) => {
+        console.log(err)
         Modal.error({
           title: () => err.message,
           content: () => err.data ?? "",
-        })
+        })}
       );
       formRef.value.resetFields();
     })

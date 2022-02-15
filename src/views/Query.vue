@@ -3,12 +3,13 @@
     <a-col span="20" offset="2" class="main">
       <a-card title="作业情况汇总">
         <a-descriptions>
-          <a-descriptions-item label="学号">{{
-            studentId
-          }}</a-descriptions-item>
-          <a-descriptions-item label="姓名">{{
-            studentName
-          }}</a-descriptions-item>
+          <a-descriptions-item label="学号">
+            <a-input
+              v-if="isAdmin === 'true'"
+              v-model:value="studentId"
+            ></a-input>
+            <p v-else>{{ studentId }}</p>
+          </a-descriptions-item>
         </a-descriptions>
         <a-table
           :columns="columns"
@@ -21,7 +22,7 @@
           </template>
           <template #list="{ text }">
             <a-tag v-for="item in text" :key="item" color="blue">
-              {{ item }}
+              {{ item.display }}
             </a-tag>
           </template>
         </a-table>
@@ -34,7 +35,7 @@
 </style>
 
 <script setup lang="ts">
-import { onMounted, Ref, ref } from "vue";
+import { onMounted, Ref, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
   getSubmissionSummary,
@@ -45,8 +46,9 @@ import { localStorageVariable } from "../utils";
 
 const router = useRouter();
 
-const studentId = localStorageVariable("studentId", "");
-const studentName = localStorageVariable("studentName", "");
+let studentId = localStorageVariable("studentId", "");
+const isAdmin = localStorageVariable("isAdmin", "false");
+if (isAdmin.value === "true") studentId = ref(studentId.value);
 if (studentId.value === "") router.push("/login");
 
 const columns = [
@@ -75,9 +77,16 @@ const columns = [
   },
 ];
 const summary: Ref<StudentSubmissionSummary[]> = ref([]);
+
 onMounted(() => {
   getSubmissionSummary(studentId.value).then((value) => {
     summary.value = value;
   });
 });
+
+watch(studentId, () => {
+  getSubmissionSummary(studentId.value).then((value) => {
+    summary.value = value;
+  });
+})
 </script>

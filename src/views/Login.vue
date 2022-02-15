@@ -61,6 +61,7 @@ async function tryLogin() {
     studentName.value = info.name;
     isAdmin.value = info.isAdmin.toString();
     status.value = "";
+    statusInfo.value = "";
   } catch (e: any) {
     if (e.response?.status == 401) {
       status.value = "error";

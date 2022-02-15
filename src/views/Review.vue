@@ -21,7 +21,9 @@
         </a-form>
       </a-col>
       <a-col span="12">
-        <a-button type="primary" @click="downloadReview">下载作业压缩包</a-button>
+        <a-button type="primary" @click="downloadReview"
+          >下载作业压缩包</a-button
+        >
       </a-col>
     </a-row>
 
@@ -42,22 +44,62 @@
       </template>
       <template #needCorrection="{ record }">
         <a-select
-          style="width: 130px"
-          v-model:value="record.needCorrection"
+          style="min-width: 120px; max-width: 250px"
+          :value="
+            record.needCorrection.map((x) =>
+              needCorrectionList.map((x) => x.problemId).indexOf(x.problemId)
+            )
+          "
+          @update:value="
+            record.needCorrection = $event.map((x) => needCorrectionList[x])
+          "
           mode="multiple"
-          :token-separators="[',', ' ', ';']"
-          :options="needCorrectionOptions"
+          :options="
+            needCorrectionList.map((x, i) => ({ value: i, label: x.display }))
+          "
         >
         </a-select>
       </template>
       <template #hasCorrected="{ record }">
         <a-select
-          style="width: 130px"
-          v-model:value="record.hasCorrected"
+          style="min-width: 120px; max-width: 250px"
+          :value="
+            record.hasCorrected.map((x) =>
+              (mistakes[record.studentId] ?? [])
+                .concat(record.hasCorrected)
+                .findIndex(
+                  (y) =>
+                    y.assignmentId === x.assignmentId &&
+                    y.problemId === x.problemId
+                )
+            )
+          "
+          @update:value="
+            record.hasCorrected = $event.map(
+              (x) =>
+                (mistakes[record.studentId] ?? []).concat(record.hasCorrected)[
+                  x
+                ]
+            )
+          "
           mode="multiple"
           :token-separators="[',', ' ', ';']"
           :options="
-            (mistakes[record.studentId] ?? []).map((x) => ({ value: x }))
+            (mistakes[record.studentId] ?? [])
+              .concat(
+                record.hasCorrected.filter(
+                  (x) =>
+                    !(mistakes[record.studentId] ?? []).find(
+                      (y) =>
+                        y.assignmentId === x.assignmentId &&
+                        y.problemId === x.problemId
+                    )
+                )
+              )
+              .map((x, i) => ({
+                value: i,
+                label: x.display,
+              }))
           "
         >
         </a-select>
@@ -77,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, Ref, reactive, watch, computed, onMounted } from "vue";
+import { ref, Ref, reactive, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { debounce, invokeDownload, localStorageVariable } from "../utils";
 import sha1 from "sha1";
@@ -89,6 +131,7 @@ import {
   GradeDisplayStrings,
   getAssignmentList,
   apiPrefix,
+  ProblemDTO,
 } from "../DAL";
 import { Modal } from "ant-design-vue";
 
@@ -151,7 +194,7 @@ const assignmentId = localStorageVariable("assignmentId", "");
 const assignmentLoading = ref(true);
 const assignmentOptions: Ref<{ value: number | string }[]> = ref([]);
 
-const mistakes: { [key: number]: Array<string> } = reactive({});
+const mistakes: { [key: number]: Array<ProblemDTO> } = reactive({});
 
 onMounted(() =>
   MyRequestWrapper(() => {
@@ -209,11 +252,13 @@ const gradeOptions = GradeDisplayStrings.map((v, idx) => ({
   label: v,
   value: idx,
 }));
-const needCorrectionOptions = computed(() => {
-  return Array.from({ length: 15 }, (_, i) => ({
-    value: `${assignmentId.value}-${i + 1}`,
-  }));
-});
+const needCorrectionList = ref(
+  Array.from({ length: 15 }, (_, i) => ({
+    assignmentId: assignmentId.value,
+    problemId: i + 1,
+    display: (i + 1).toString(),
+  }))
+);
 
 let dataSource: Ref<ReviewInfo[]> = ref([]);
 let dataChanged: ReviewInfo[] = [];
@@ -262,6 +307,7 @@ const SendChanges = debounce(async () => {
           dataChanged.every((changed) => row.studentId !== changed.studentId)
         );
         dataChanged = dataChanged.concat(NoModifyDuringRequest);
+        throw e;
       })
   );
 }, 500);

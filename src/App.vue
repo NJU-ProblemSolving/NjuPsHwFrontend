@@ -43,5 +43,4 @@ import { useRouter } from "vue-router";
 import { localStorageVariable } from "./utils";
 const router = useRouter();
 const isAdmin = localStorageVariable("isAdmin", "false");
-console.log(isAdmin);
 </script>
