@@ -11,6 +11,14 @@ export const debounce = (func: Function, delay = 500) => {
     }
 }
 
+export function zeroPadding (x: number, length: number) : string {
+  let res = x.toString();
+  let diff = length - res.length;
+  if (diff > 0)
+    return "0".repeat(diff) + res;
+  return res;
+}
+
 export function getUrlParam(param: string): string | undefined {
     const dict = location.search.substring(1).split('&').map(x => x.split('=', 2))
     const res = dict.find(kv => kv[0] === param)
@@ -32,4 +40,34 @@ export function invokeDownload(url: string, filename: string | null = null) {
     if (typeof filename === 'string')
         a.download = filename;
     a.click();
+}
+
+export class Lock {
+    locked: boolean;
+    queue: Array<() => void>;
+
+    constructor() {
+        this.locked = false;
+        this.queue = [];
+    }
+
+    lock(): Promise<void> {
+        return new Promise<void>((res, _) => {
+            if (!this.locked) {
+                this.locked = true;
+                res();
+                return;
+            }
+            this.queue.push(res);
+        });
+    }
+
+    unlock(): void {
+        let next = this.queue.shift();
+        if (typeof next !== 'undefined') {
+            next();
+        } else {
+            this.locked = false;
+        }
+    }
 }

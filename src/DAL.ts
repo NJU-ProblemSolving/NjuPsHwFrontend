@@ -20,6 +20,25 @@ export enum Grade {
 
 export const GradeDisplayStrings = ['-', 'A', 'A-', 'B', 'B-', 'C', 'D'];
 
+export const reviewers = [
+    {
+        id: "1",
+        name: "李晗",
+    },
+    {
+        id: "2",
+        name: "桑百惠",
+    },
+    {
+        id: "3",
+        name: "赵超懿",
+    },
+    {
+        id: "4",
+        name: "姚梦雨",
+    },
+];
+
 /*
 ** Account
 */
@@ -66,7 +85,7 @@ export interface MistakesOfStudent {
 }
 
 export async function getMistakeInfo(): Promise<MistakesOfStudent[]> {
-    return (await instance.get<MistakesOfStudent[]>('/Mistake')).data
+    return (await instance.get<MistakesOfStudent[]>('Mistake')).data
 }
 
 /*
@@ -85,10 +104,10 @@ export interface ReviewInfo {
 }
 
 export async function getReviewInfo(assignmentId: number | string, reviewerId: number | string): Promise<ReviewInfo[]> {
-    return (await instance.get<ReviewInfo[]>('/Review', { params: { assignmentId, reviewerId } })).data
+    return (await instance.get<ReviewInfo[]>('Review', { params: { assignmentId, reviewerId } })).data
 }
 export async function postReviewInfo(assignmentId: number | string, data: ReviewInfo[]) {
-    await instance.post(`/Review?assignmentId=${assignmentId}`, data)
+    await instance.post(`Review?assignmentId=${assignmentId}`, data)
 }
 
 /*
@@ -103,7 +122,7 @@ export interface StudentSubmissionSummary {
     comment: string,
 }
 export async function getSubmissionSummary(studentId: number | string): Promise<StudentSubmissionSummary[]> {
-    return (await instance.get<StudentSubmissionSummary[]>(`/Student/${studentId}/SubmissionSummary`)).data
+    return (await instance.get<StudentSubmissionSummary[]>(`Student/${studentId}/SubmissionSummary`)).data
 }
 
 export async function submitAssignment(studentId: number | string, assignmentId: number | string, file: File) {
@@ -114,5 +133,5 @@ export async function submitAssignment(studentId: number | string, assignmentId:
     formData.append("assignmentId", assignmentId.toString());
     formData.append("file", file);
 
-    await instance.post(`/Submission/Submit`, formData)
+    await instance.post(`Submission/Submit`, formData)
 }

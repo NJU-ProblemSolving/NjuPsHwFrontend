@@ -4,24 +4,16 @@
       <a-card title="作业情况汇总">
         <a-descriptions>
           <a-descriptions-item label="学号">
-            <a-input
-              v-if="isAdmin === 'true'"
-              v-model:value="studentId"
-            ></a-input>
+            <a-input v-if="isAdmin === 'true'" v-model:value="studentId"></a-input>
             <p v-else>{{ studentId }}</p>
           </a-descriptions-item>
         </a-descriptions>
-        <a-table
-          :columns="columns"
-          row-key="assignmentId"
-          :data-source="summary"
-          :pagination="false"
-        >
+        <a-table :columns="columns" row-key="assignmentId" :data-source="summary" :pagination="false">
           <template #grade="{ record }">
             {{ GradeDisplayStrings[record.grade] }}
           </template>
           <template #list="{ text }">
-            <a-tag v-for="item in text" :key="item" color="blue">
+            <a-tag v-for="item in text" :key="item" :color="hasCorrected.has(item.display) ? 'green' : 'blue'">
               {{ item.display }}
             </a-tag>
           </template>
@@ -35,6 +27,8 @@
 </style>
 
 <script setup lang="ts">
+import { Modal } from "ant-design-vue";
+import { has } from "lodash";
 import { onMounted, Ref, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
@@ -76,17 +70,34 @@ const columns = [
     dataIndex: "comment",
   },
 ];
+
 const summary: Ref<StudentSubmissionSummary[]> = ref([]);
+const hasCorrected = new Set<string>();
 
-onMounted(() => {
-  getSubmissionSummary(studentId.value).then((value) => {
-    summary.value = value;
-  });
-});
+async function query() {
+  try {
+    let res = await getSubmissionSummary(studentId.value);
+    res.flatMap(x => x.hasCorrected).forEach(x => hasCorrected.add(x.display));
+    console.log(hasCorrected)
+    summary.value = res;
+  } catch (error: any) {
+    if (error.response?.status == 401) {
+      router.push({ name: "Login", params: { returnIfSuccess: '1' } });
+    } else if (error.response?.status === 403) {
+      Modal.error({
+        title: () => error.message,
+        content: () => "需要管理员权限",
+      });
+    } else {
+      Modal.error({
+        title: () => "出现意外的错误：" + error.message,
+        content: () => error.data,
+      });
+    }
+  }
+}
 
-watch(studentId, () => {
-  getSubmissionSummary(studentId.value).then((value) => {
-    summary.value = value;
-  });
-})
+onMounted(query);
+
+watch(studentId, query)
 </script>

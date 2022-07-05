@@ -4,104 +4,72 @@
       <a-col span="12">
         <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 6 }">
           <a-form-item label="评阅人">
-            <a-select
-              v-model:value="reviewerId"
-              :options="reviewerOptions"
-              :disabled="requesting"
-            ></a-select>
+            <a-select v-model:value="reviewerId" :options="reviewerOptions" :disabled="requesting"></a-select>
           </a-form-item>
           <a-form-item label="作业">
-            <a-select
-              v-model:value="assignmentId"
-              :options="assignmentOptions"
-              :loading="assignmentLoading"
-              :disabled="requesting"
-            ></a-select>
+            <assignment-selector v-model="assignmentId" v-model:name="assignmentName" :disabled="requesting">
+            </assignment-selector>
           </a-form-item>
         </a-form>
       </a-col>
       <a-col span="12">
-        <a-button type="primary" @click="downloadReview"
-          >下载作业压缩包</a-button
-        >
+        <a-button type="primary" @click="downloadReview">下载作业压缩包</a-button>
       </a-col>
     </a-row>
 
-    <a-table
-      v-show="dataSource.length > 0"
-      :columns="columns"
-      :data-source="dataSource"
-      row-key="studentId"
-      expended-row-key="studentId"
-    >
+    <a-table v-show="dataSource.length > 0" :columns="columns" :data-source="dataSource" row-key="studentId"
+      expended-row-key="studentId">
       <template #grade="{ record }">
-        <a-select
-          style="width: 60px"
-          v-model:value="record.grade"
-          :options="gradeOptions"
-        >
+        <a-select style="width: 60px" v-model:value="record.grade" :options="gradeOptions">
         </a-select>
       </template>
       <template #needCorrection="{ record }">
-        <a-select
-          style="min-width: 120px; max-width: 250px"
-          :value="
-            record.needCorrection.map((x) =>
-              needCorrectionList.map((x) => x.problemId).indexOf(x.problemId)
-            )
-          "
-          @update:value="
-            record.needCorrection = $event.map((x) => needCorrectionList[x])
-          "
-          mode="multiple"
-          :options="
-            needCorrectionList.map((x, i) => ({ value: i, label: x.display }))
-          "
-        >
+        <a-select style="width: 100%;" :value="
+          record.needCorrection.map((x: ProblemDTO) =>
+            needCorrectionList.map((x) => x.problemId).indexOf(x.problemId)
+          )
+        " @update:value="
+  record.needCorrection = $event.map((x: number) => needCorrectionList[x])
+" mode="multiple" :options="
+  needCorrectionList.map((x, i) => ({ value: i, label: x.display }))
+">
         </a-select>
       </template>
       <template #hasCorrected="{ record }">
-        <a-select
-          style="min-width: 120px; max-width: 250px"
-          :value="
-            record.hasCorrected.map((x) =>
-              (mistakes[record.studentId] ?? [])
-                .concat(record.hasCorrected)
-                .findIndex(
-                  (y) =>
-                    y.assignmentId === x.assignmentId &&
-                    y.problemId === x.problemId
-                )
-            )
-          "
-          @update:value="
-            record.hasCorrected = $event.map(
-              (x) =>
-                (mistakes[record.studentId] ?? []).concat(record.hasCorrected)[
-                  x
-                ]
-            )
-          "
-          mode="multiple"
-          :token-separators="[',', ' ', ';']"
-          :options="
+        <a-select style="width: 100%;" :value="
+          record.hasCorrected.map((x: ProblemDTO) =>
             (mistakes[record.studentId] ?? [])
-              .concat(
-                record.hasCorrected.filter(
-                  (x) =>
-                    !(mistakes[record.studentId] ?? []).find(
-                      (y) =>
-                        y.assignmentId === x.assignmentId &&
-                        y.problemId === x.problemId
-                    )
-                )
+              .concat(record.hasCorrected)
+              .findIndex(
+                (y) =>
+                  y.assignmentId === x.assignmentId &&
+                  y.problemId === x.problemId
               )
-              .map((x, i) => ({
-                value: i,
-                label: x.display,
-              }))
-          "
-        >
+          )
+        " @update:value="
+  record.hasCorrected = $event.map(
+    (x: number) =>
+      (mistakes[record.studentId] ?? []).concat(record.hasCorrected)[
+      x
+      ]
+  )
+" mode="multiple" :token-separators="[',', ' ', ';']" :options="
+  (mistakes[record.studentId] ?? [])
+    .concat(
+      record.hasCorrected.filter(
+        (x: ProblemDTO) =>
+          !(mistakes[record.studentId] ?? []).find(
+            (y) =>
+              y.assignmentId === x.assignmentId &&
+              y.problemId === x.problemId
+          )
+      )
+    )
+    .map((x, i) => ({
+      value: i,
+      label: x.display,
+    }))
+">
         </a-select>
       </template>
       <template #expandedRowRender="{ record }">
@@ -119,9 +87,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, Ref, reactive, watch, onMounted } from "vue";
+import { ref, Ref, reactive, watch, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
-import { debounce, invokeDownload, localStorageVariable } from "../utils";
+import { debounce, zeroPadding, invokeDownload, localStorageVariable, Lock } from "../utils";
 import sha1 from "sha1";
 import {
   getMistakeInfo,
@@ -129,29 +97,27 @@ import {
   postReviewInfo,
   ReviewInfo,
   GradeDisplayStrings,
-  getAssignmentList,
   apiPrefix,
   ProblemDTO,
+  reviewers,
 } from "../DAL";
+import AssignmentSelector from "../components/AssignmentSelector.vue";
 import { Modal } from "ant-design-vue";
 
 const router = useRouter();
 
 const requesting = ref(false);
+const reqLock = new Lock();
 const MyRequestWrapper = async <T>(
   func: () => Promise<T>
 ): Promise<T | undefined> => {
   try {
-    console.log("Requesing");
-    if (requesting.value === true) {
-      throw Error("Multiple request");
-    }
-
+    await reqLock.lock();
     requesting.value = true;
     return await func();
   } catch (error: any) {
     if (error.response?.status == 401) {
-      router.push("/Login");
+      router.push({ name: "Login", params: { returnIfSuccess: '1' } });
     } else if (error.response?.status === 403) {
       Modal.error({
         title: () => error.message,
@@ -160,49 +126,28 @@ const MyRequestWrapper = async <T>(
     } else {
       Modal.error({
         title: () => error.message,
-        content: () => error.data ?? "",
+        content: () => error.data ?? "出现意外的错误，建议刷新页面与服务器重新同步",
       });
       if (typeof error.toJSON !== "undefined") console.error(error.toJSON);
       else console.error(error);
     }
   } finally {
     requesting.value = false;
+    reqLock.unlock();
   }
 };
 
 const reviewerId = localStorageVariable("reviewerId", "1");
-const reviewerOptions = [
-  {
-    value: "1",
-    label: "李晗",
-  },
-  {
-    value: "2",
-    label: "桑百惠",
-  },
-  {
-    value: "3",
-    label: "赵超懿",
-  },
-  {
-    value: "4",
-    label: "姚梦雨",
-  },
-];
+const reviewerOptions = reviewers.map(x => ({ value: x.id, label: x.name }));
 
 const assignmentId = localStorageVariable("assignmentId", "");
-const assignmentLoading = ref(true);
-const assignmentOptions: Ref<{ value: number | string }[]> = ref([]);
+const assignmentName = ref('')
 
 const mistakes: { [key: number]: Array<ProblemDTO> } = reactive({});
 
 onMounted(() =>
-  MyRequestWrapper(() => {
+  MyRequestWrapper(async () => {
     let req = [
-      getAssignmentList().then((list) => {
-        assignmentLoading.value = false;
-        assignmentOptions.value = list.map((x) => ({ value: x.id }));
-      }),
       getMistakeInfo().then((list) =>
         list.forEach((x) => (mistakes[x.studentId] = x.mistakes))
       ),
@@ -210,7 +155,7 @@ onMounted(() =>
     if (assignmentId.value != "") {
       req.push(fetchReview());
     }
-    return Promise.all(req);
+    await Promise.all(req);
   })
 );
 
@@ -252,11 +197,11 @@ const gradeOptions = GradeDisplayStrings.map((v, idx) => ({
   label: v,
   value: idx,
 }));
-const needCorrectionList = ref(
+const needCorrectionList = computed(() =>
   Array.from({ length: 15 }, (_, i) => ({
     assignmentId: assignmentId.value,
     problemId: i + 1,
-    display: (i + 1).toString(),
+    display: `${assignmentName.value}.${i + 1}`,
   }))
 );
 
@@ -264,21 +209,20 @@ let dataSource: Ref<ReviewInfo[]> = ref([]);
 let dataChanged: ReviewInfo[] = [];
 const fetchReview = async () => {
   dataSource.value = [];
-  getReviewInfo(assignmentId.value, reviewerId.value).then((resp) => {
-    resp.sort((a, b) => a.studentId - b.studentId);
-    dataSource.value = resp.map((row) => {
-      const rowRef = reactive(row);
-      watch(rowRef, (v) => {
-        dataChanged = dataChanged.filter(
-          (row) => row.studentId !== v.studentId
-        );
-        dataChanged.push(v);
-        SendChanges();
-      });
-      return rowRef;
+  const resp = await getReviewInfo(assignmentId.value, reviewerId.value)
+  resp.sort((a, b) => a.studentId - b.studentId);
+  dataSource.value = resp.map((row) => {
+    const rowRef = reactive(row);
+    watch(rowRef, (v) => {
+      dataChanged = dataChanged.filter(
+        (row) => row.studentId !== v.studentId
+      );
+      dataChanged.push(v);
+      SendChanges();
     });
-    UpdateFingerPrint();
+    return rowRef;
   });
+  UpdateFingerPrint();
 };
 
 const lastSync = ref("");
@@ -290,9 +234,9 @@ const UpdateFingerPrint = () => {
   const now = new Date();
   lastSync.value =
     `${now.getMonth() + 1}.${now.getDate()} ` +
-    `${("0" + now.getHours()).substr(-2)}:` +
-    `${("0" + now.getMinutes()).substr(-2)}:` +
-    `${("0" + now.getSeconds()).substr(-2)}`;
+    zeroPadding(now.getHours(), 2) +
+    zeroPadding(now.getMinutes(), 2) +
+    zeroPadding(now.getSeconds(), 2);
 };
 const SendChanges = debounce(async () => {
   const dataToSend = dataChanged;
@@ -303,10 +247,10 @@ const SendChanges = debounce(async () => {
         UpdateFingerPrint();
       })
       .catch((e) => {
-        const NoModifyDuringRequest = dataToSend.filter((row) =>
+        const NotChanged = dataToSend.filter((row) =>
           dataChanged.every((changed) => row.studentId !== changed.studentId)
         );
-        dataChanged = dataChanged.concat(NoModifyDuringRequest);
+        dataChanged = dataChanged.concat(NotChanged);
         throw e;
       })
   );
@@ -315,7 +259,7 @@ const SendChanges = debounce(async () => {
 function downloadReview() {
   invokeDownload(
     apiPrefix +
-      `/Review/Archieve?assignmentId=${assignmentId.value}&reviewerId=${reviewerId.value}`,
+    `Review/Archieve?assignmentId=${assignmentId.value}&reviewerId=${reviewerId.value}`,
     `${assignmentId}.zip`
   );
 }

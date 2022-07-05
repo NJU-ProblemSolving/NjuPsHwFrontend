@@ -2,31 +2,16 @@
   <a-row>
     <a-col span="12" offset="6" class="main">
       <a-card title="提交作业">
-        <a-form
-          ref="formRef"
-          :labelCol="{ span: 4 }"
-          :wrapperCol="{ span: 8 }"
-          :model="formState"
-          :rules="rules"
-        >
+        <a-form ref="formRef" :labelCol="{ span: 4 }" :wrapperCol="{ span: 8 }" :model="formState" :rules="rules">
           <a-form-item label="学号" name="studentId">
-            <a-input
-              v-if="isAdmin === 'true'"
-              v-model:value="studentId"
-            ></a-input>
+            <a-input v-if="isAdmin === 'true'" v-model:value="studentId"></a-input>
             <p v-else>{{ studentId }}</p>
           </a-form-item>
           <a-form-item label="作业编号" name="assignmentId">
-            <assignment-selector
-              v-model:value="assignmentId"
-            ></assignment-selector>
+            <assignment-selector v-model="assignmentId"></assignment-selector>
           </a-form-item>
           <a-form-item label="作业文件" name="fileList">
-            <a-upload
-              v-model:fileList="fileList"
-              :beforeUpload="() => false"
-              @change="fileList = fileList.slice(-1)"
-            >
+            <a-upload v-model:fileList="fileList" :beforeUpload="() => false" @change="fileList = fileList.slice(-1)">
               <a-button>选择文件</a-button>
             </a-upload>
           </a-form-item>
@@ -83,10 +68,11 @@ const onSubmit = () => {
         Modal.error({
           title: () => err.message,
           content: () => err.data ?? "",
-        })}
+        })
+      }
       );
       formRef.value.resetFields();
     })
-    .catch(() => {});
+    .catch(() => { });
 }
 </script>
