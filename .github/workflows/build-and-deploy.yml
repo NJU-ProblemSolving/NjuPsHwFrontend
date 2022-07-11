@@ -1,5 +1,5 @@
-name: Docker Image CI
-'on':
+name: Build and Deploy to Kubernetes
+on:
   push:
     branches:
       - main
@@ -34,7 +34,21 @@ jobs:
           builder: '${{ steps.buildx.outputs.name }}'
           push: true
           tags: |
-            '${{ secrets.DOCKER_HUB_USERNAME }}/${{ steps.info.outputs.reponame_lowercase }}:${{ steps.info.outputs.revision }}'
-            '${{ secrets.DOCKER_HUB_USERNAME }}/${{ steps.info.outputs.reponame_lowercase }}:latest'
+            ${{ secrets.DOCKER_HUB_USERNAME }}/${{ steps.info.outputs.reponame_lowercase }}:latest
+            ${{ secrets.DOCKER_HUB_USERNAME }}/${{ steps.info.outputs.reponame_lowercase }}:${{ steps.info.outputs.revision }}
           cache-from: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/${{ steps.info.outputs.reponame_lowercase }}:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/${{ steps.info.outputs.reponame_lowercase }}:buildcache,mode=max
+      - uses: azure/setup-kubectl@v2.0
+      - uses: azure/k8s-set-context@v1
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBECONFIG }}
+      - name: Deploy to Kubernetes
+        uses: Azure/k8s-deploy@v4
+        with:
+          namespace: njupshw
+          manifests: |
+            deployment/deployment.yml
+            deployment/service.yml
+          images:
+            ${{ secrets.DOCKER_HUB_USERNAME }}/${{ steps.info.outputs.reponame_lowercase }}:${{ steps.info.outputs.revision }}

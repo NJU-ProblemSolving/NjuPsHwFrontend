@@ -8,6 +8,8 @@ const instance = axios.create({
     responseType: 'json',
 });
 
+instance.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+
 export enum Grade {
     None,
     A,
@@ -129,9 +131,8 @@ export async function submitAssignment(studentId: number | string, assignmentId:
     if (file.size > 3 * 1024 * 1024) throw { message: "上传文件过大" };
 
     const formData = new FormData();
-    formData.append("studentId", studentId.toString());
     formData.append("assignmentId", assignmentId.toString());
     formData.append("file", file);
 
-    await instance.post(`Submission/Submit`, formData)
+    await instance.post(`Student/${studentId}/Submit`, formData)
 }
