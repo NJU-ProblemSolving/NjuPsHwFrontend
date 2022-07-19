@@ -24,53 +24,14 @@
         </a-select>
       </template>
       <template #needCorrection="{ record }">
-        <a-select style="width: 100%;" :value="
-          record.needCorrection.map((x: ProblemDTO) =>
-            needCorrectionList.map((x) => x.problemId).indexOf(x.problemId)
-          )
-        " @update:value="
-  record.needCorrection = $event.map((x: number) => needCorrectionList[x])
-" mode="multiple" :options="
-  needCorrectionList.map((x, i) => ({ value: i, label: x.display }))
-">
-        </a-select>
+        <object-selector v-model="record.needCorrection" :list="needCorrectionList" :nameSelector="x => x.display"
+          :equalComparer="problemEquals" style="width: 100%;"></object-selector>
       </template>
       <template #hasCorrected="{ record }">
-        <a-select style="width: 100%;" :value="
-          record.hasCorrected.map((x: ProblemDTO) =>
-            (mistakes[record.studentId] ?? [])
-              .concat(record.hasCorrected)
-              .findIndex(
-                (y) =>
-                  y.assignmentId === x.assignmentId &&
-                  y.problemId === x.problemId
-              )
-          )
-        " @update:value="
-  record.hasCorrected = $event.map(
-    (x: number) =>
-      (mistakes[record.studentId] ?? []).concat(record.hasCorrected)[
-      x
-      ]
-  )
-" mode="multiple" :token-separators="[',', ' ', ';']" :options="
-  (mistakes[record.studentId] ?? [])
-    .concat(
-      record.hasCorrected.filter(
-        (x: ProblemDTO) =>
-          !(mistakes[record.studentId] ?? []).find(
-            (y) =>
-              y.assignmentId === x.assignmentId &&
-              y.problemId === x.problemId
-          )
-      )
-    )
-    .map((x, i) => ({
-      value: i,
-      label: x.display,
-    }))
-">
-        </a-select>
+        <object-selector v-model="record.hasCorrected"
+          :list.once="uniqueProblemList((mistakes[record.studentId] ?? []).concat(record.hasCorrected))" :nameSelector="x => x.display"
+          :equalComparer="problemEquals" style="width: 100%;">
+        </object-selector>
       </template>
       <template #expandedRowRender="{ record }">
         <a-row type="flex" justify="space-around">
@@ -102,6 +63,7 @@ import {
   reviewers,
 } from "../DAL";
 import AssignmentSelector from "../components/AssignmentSelector.vue";
+import ObjectSelector from "../components/ObjectSelector.vue";
 import { Modal } from "ant-design-vue";
 
 const router = useRouter();
@@ -126,7 +88,7 @@ const MyRequestWrapper = async <T>(
     } else {
       Modal.error({
         title: () => error.message,
-        content: () => error.data ?? "出现意外的错误，建议刷新页面与服务器重新同步",
+        content: () => error.response?.data  ?? "出现意外的错误，建议刷新页面与服务器重新同步",
       });
       if (typeof error.toJSON !== "undefined") console.error(error.toJSON);
       else console.error(error);
@@ -199,11 +161,23 @@ const gradeOptions = GradeDisplayStrings.map((v, idx) => ({
 }));
 const needCorrectionList = computed(() =>
   Array.from({ length: 15 }, (_, i) => ({
-    assignmentId: assignmentId.value,
+    assignmentId: Number(assignmentId.value),
     problemId: i + 1,
     display: `${assignmentName.value}.${i + 1}`,
   }))
 );
+const problemEquals = (x: ProblemDTO, y: ProblemDTO) =>
+  x.assignmentId === y.assignmentId && x.problemId == y.problemId;
+const uniqueProblemList = (a: Array<ProblemDTO>): Array<ProblemDTO> => {
+  let set = new Set()
+  let max = Math.max(...a.map(x => x.problemId)) + 10
+  return a.filter(x => {
+    let id = x.assignmentId * max + x.problemId
+    let res = !set.has(id)
+    if (res) set.add(id)
+    return res
+  })
+}
 
 let dataSource: Ref<ReviewInfo[]> = ref([]);
 let dataChanged: ReviewInfo[] = [];

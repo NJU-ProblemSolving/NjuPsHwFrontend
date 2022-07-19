@@ -52,7 +52,7 @@ export interface AccountInfo {
 }
 
 export async function tryLoginByToken(token: string): Promise<AccountInfo> {
-    return (await instance.post<AccountInfo>(`Account/Login`, token, { headers: { 'Content-Type': 'application/json' } })).data
+    return (await instance.post<AccountInfo>(`Account/Login`, `"${token}"`, { headers: { 'Content-Type': 'application/json' } })).data
 }
 
 /*
@@ -135,4 +135,8 @@ export async function submitAssignment(studentId: number | string, assignmentId:
     formData.append("file", file);
 
     await instance.post(`Student/${studentId}/Submit`, formData)
+}
+
+export async function resetToken(studentId: number | string) {
+    return await instance.post(`Student/${studentId}/ResetToken`)
 }

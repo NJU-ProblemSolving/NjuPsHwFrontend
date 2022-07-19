@@ -47,7 +47,7 @@ if (studentId.value === "") router.push("/login");
 const columns = [
   {
     title: "作业",
-    dataIndex: "assignmentId",
+    dataIndex: "assignmentName",
   },
   {
     title: "评分",
@@ -77,7 +77,6 @@ async function query() {
   try {
     let res = await getSubmissionSummary(studentId.value);
     res.flatMap(x => x.hasCorrected).forEach(x => hasCorrected.add(x.display));
-    console.log(hasCorrected)
     summary.value = res;
   } catch (error: any) {
     if (error.response?.status == 401) {
@@ -90,7 +89,7 @@ async function query() {
     } else {
       Modal.error({
         title: () => "出现意外的错误：" + error.message,
-        content: () => error.data,
+        content: () => error.response?.data,
       });
     }
   }
