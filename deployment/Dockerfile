@@ -1,10 +1,8 @@
-FROM node:lts AS build
-
-COPY ./package.json ./package-lock.json app/
-WORKDIR app/
-RUN npm install
+FROM node:lts-alpine AS build
 
 COPY . app/
+WORKDIR app/
+RUN npm install
 RUN npm run build
 
 FROM caddy:alpine
