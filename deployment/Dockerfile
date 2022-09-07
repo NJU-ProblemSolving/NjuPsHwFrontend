@@ -8,3 +8,4 @@ RUN npm run build
 FROM caddy:alpine
 
 COPY --from=build app/dist /usr/share/caddy
+COPY deployment/Caddyfile /etc/caddy/Caddyfile

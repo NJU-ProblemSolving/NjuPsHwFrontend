@@ -17,6 +17,7 @@
           </template>
           <a-form-item :wrapperCol="{ offset: 8 }">
             <a-button type="primary" :loading="loading" @click="tryLogin">登录</a-button>
+            <a-button type="link"><a href="/signin-oidc">从OJ登录</a></a-button>
           </a-form-item>
         </a-form>
       </a-card>

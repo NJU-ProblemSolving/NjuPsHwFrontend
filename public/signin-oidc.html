@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>正在登录</title>
+</head>
+
+<body>
+    <script>
+        let dict = {};
+        location.hash.substr(1).split('&').forEach(x => {
+            let [k, v] = x.split('=');
+            dict[k] = v;
+        });
+
+        if (typeof dict['id_token'] === 'undefined') {
+            location.replace('https://exam.problemsolving.top:8085/connect/authorize?scope=openid%20profile%20studentInfo&response_type=id_token&client_id=HomeworkSystem2&state=123&redirect_uri=https%3A%2F%2Fhw.problemsolving.top%2Fsignin-oidc&nonce=123')
+        }
+
+        let xhr = new XMLHttpRequest();
+        xhr.open('GET', '/api/Account/LoginJwt', false);
+        xhr.setRequestHeader('Authorization', 'Bearer ' + dict['id_token']);
+        xhr.send(null);
+
+        if (xhr.status === 200) {
+            console.log(xhr.responseText);
+            let res = JSON.parse(xhr.responseText);
+            localStorage.setItem('token', res['token']);
+            location.replace('/');
+        } else {
+            document.write('登陆失败<br/>' + xhr.statusText + '<br/>' + xhr.responseText);
+        }
+    </script>
+</body>
+
+</html>
