@@ -42,7 +42,7 @@ const router = useRouter();
 let studentId = localStorageVariable("studentId", "");
 const isAdmin = localStorageVariable("isAdmin", "false");
 if (isAdmin.value === "true") studentId = ref(studentId.value);
-if (studentId.value === "") router.push("/login");
+if (studentId.value === "") router.push({ name: "Login", params: { returnIfSuccess: '1' } });
 
 const columns = [
   {

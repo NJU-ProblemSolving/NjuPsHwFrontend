@@ -39,8 +39,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        // target: 'https://hw.problemsolving.top/',
-        target: 'http://h2.lihan.fun:30006/',
+        target: 'https://hw.problemsolving.top/',
+        // target: 'http://h2.lihan.fun:30006/',
         changeOrigin: true,
       }
     }

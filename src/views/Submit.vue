@@ -16,7 +16,7 @@
             </a-upload>
           </a-form-item>
           <a-form-item :wrapperCol="{ offset: 4 }">
-            <a-button type="primary" @click="onSubmit">提交</a-button>
+            <a-button type="primary" :loading="requesting" @click="onSubmit">提交</a-button>
           </a-form-item>
         </a-form>
       </a-card>
@@ -25,6 +25,7 @@
 </template>
 
 <style scoped>
+
 </style>
 
 <script setup lang="ts">
@@ -32,7 +33,7 @@ import { reactive, Ref, ref } from "vue";
 import { useRouter } from "vue-router";
 import { submitAssignment } from "../DAL";
 import { localStorageVariable } from "../utils";
-import { Modal } from "ant-design-vue";
+import { Modal, message } from "ant-design-vue";
 import AssignmentSelector from '../components/AssignmentSelector.vue'
 
 const router = useRouter();
@@ -41,9 +42,10 @@ let studentId = localStorageVariable("studentId", "");
 const studentName = localStorageVariable("studentName", "");
 const isAdmin = localStorageVariable("isAdmin", "false");
 if (isAdmin.value === "true") studentId = ref(studentId.value);
-if (studentId.value === "") router.push("/login");
+if (studentId.value === "") router.push({ name: "Login", params: { returnIfSuccess: '1' } });
 
 const assignmentId = ref("");
+const requesting = ref(false);
 
 const fileList: Ref<Array<{ originFileObj: File }>> = ref([]);
 
@@ -54,25 +56,31 @@ const rules = {
   fileList: [{ required: true, message: "请上传作业文件" }],
 };
 
-const onSubmit = () => {
-  formRef.value
-    .validate()
-    .then(() => {
-      console.log(fileList.value);
-      submitAssignment(
-        studentId.value,
-        assignmentId.value,
-        fileList.value[0].originFileObj
-      ).catch((err) => {
-        console.log(err)
-        Modal.error({
-          title: () => err.message,
-          content: () => err.data ?? "",
-        })
-      }
-      );
-      formRef.value.resetFields();
+const onSubmit = async () => {
+  try {
+    await formRef.value.validate();
+  } catch (e) {
+    return;
+  }
+
+  console.log(fileList.value);
+  try {
+    requesting.value = true;
+    await submitAssignment(
+      studentId.value,
+      assignmentId.value,
+      fileList.value[0].originFileObj
+    );
+    formRef.value.resetFields();
+    message.success('提交成功');
+  } catch (err: any) {
+    console.log(err)
+    Modal.error({
+      title: () => err.message,
+      content: () => err.data ?? "",
     })
-    .catch(() => { });
+  } finally {
+    requesting.value = false;
+  }
 }
 </script>
