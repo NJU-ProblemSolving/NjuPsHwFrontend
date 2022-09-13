@@ -73,6 +73,7 @@ const onSubmit = async () => {
     );
     formRef.value.resetFields();
     message.success('提交成功');
+    router.push({ name: "Query" });
   } catch (err: any) {
     console.log(err)
     Modal.error({

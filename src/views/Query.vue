@@ -9,6 +9,12 @@
           </a-descriptions-item>
         </a-descriptions>
         <a-table :columns="columns" row-key="assignmentId" :data-source="summary" :pagination="false">
+          <template #time="{ record }">
+            <a-tooltip>
+              <template #title>{{ record.submittedAt }}</template>
+              {{ moment(record.submittedAt).format('M-DD HH:mm')  }}
+            </a-tooltip>
+          </template>
           <template #grade="{ record }">
             {{ GradeDisplayStrings[record.grade] }}
           </template>
@@ -27,6 +33,7 @@
 </style>
 
 <script setup lang="ts">
+import moment from "moment";
 import { Modal } from "ant-design-vue";
 import { onMounted, Ref, ref, watch } from "vue";
 import { useRouter } from "vue-router";
@@ -48,6 +55,11 @@ const columns = [
   {
     title: "作业",
     dataIndex: "assignmentName",
+  },
+  {
+    title: "提交时间",
+    dataIndex: "submittedAt",
+    slots: { customRender: "time" },
   },
   {
     title: "评分",

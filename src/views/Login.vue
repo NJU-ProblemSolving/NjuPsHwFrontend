@@ -38,6 +38,7 @@ import { onMounted, ref } from "vue";
 import { tryLoginByToken, resetToken } from "../DAL";
 import { useRoute, useRouter } from "vue-router";
 import { localStorageVariable } from "../utils";
+import { message } from "ant-design-vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -59,8 +60,7 @@ const handleReset = async () => {
   try {
     let res = await resetToken(studentId.value);
     resetHelp.value = res.data;
-  } catch(error: any)
-  {
+  } catch (error: any) {
     resetHelp.value = error.message + ": " + (error.response?.data ?? "");
   }
   resetLoading.value = false;
@@ -73,6 +73,9 @@ if (token.value !== '') {
 async function tryLogin() {
   try {
     loading.value = true;
+    studentId.value = "";
+    studentName.value = "";
+    isAdmin.value = "false";
     let info = await tryLoginByToken(token.value);
     studentId.value = info.id.toString();
     studentName.value = info.name;
@@ -81,6 +84,8 @@ async function tryLogin() {
     tokenHelp.value = "";
     if (route.params['returnIfSuccess'] === '1')
       router.back();
+    else
+      message.success("登录成功");
   } catch (e: any) {
     studentId.value = "";
     studentName.value = "";

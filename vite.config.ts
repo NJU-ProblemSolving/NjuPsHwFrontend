@@ -30,6 +30,17 @@ export default defineConfig({
         },
       ]
     }),
+    importToCDN({
+      prodUrl: 'https://cdn.staticfile.org/moment.js/{version}/{path}',
+      // prodUrl: 'https://cdn.jsdelivr.net/npm/{name}@{version}/dist/{path}',
+      modules: [
+        {
+          name: 'moment',
+          var: 'moment',
+          path: 'moment.min.js',
+        },
+      ]
+    }),
   ],
   resolve: {
     alias: {

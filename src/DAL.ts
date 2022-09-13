@@ -118,6 +118,7 @@ export async function postReviewInfo(assignmentId: number | string, data: Review
 
 export interface StudentSubmissionSummary {
     assignmentId: number,
+    submittedAt: string,
     grade: Grade,
     needCorrection: Array<ProblemDTO>,
     hasCorrected: Array<ProblemDTO>,
