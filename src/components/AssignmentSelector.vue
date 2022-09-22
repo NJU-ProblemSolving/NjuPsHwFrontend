@@ -1,10 +1,15 @@
 <template>
-  <a-select v-model:value="assignmentId" :options="options" :loading="loading" :disabled="disabled"></a-select>
+  <a-select
+    v-model:value="assignmentId"
+    :options="options"
+    :loading="loading"
+    :disabled="disabled"
+  />
 </template>
 
 <script setup lang="ts">
 import { onMounted, watch, Ref, ref } from "vue";
-import { Assignment, getAssignmentList } from "../DAL";
+import { AssignmentDto, getAssignmentList } from "../DAL";
 
 const props = defineProps<{
   modelValue: number | string,
@@ -21,10 +26,10 @@ watch(assignmentId, () => {
 });
 
 const loading = ref(true);
-const options: Ref<{ value: number; label: number }[]> = ref([]);
+const options: Ref<{ value: number; label: string }[]> = ref([]);
 
-let assignmentList: Assignment[] = [];
-let assignmentMap: Map<number, Assignment> = new Map();
+let assignmentList: AssignmentDto[] = [];
+let assignmentMap: Map<number, AssignmentDto> = new Map();
 
 onMounted(async () => {
   assignmentList = await getAssignmentList();

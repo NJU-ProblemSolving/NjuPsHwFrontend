@@ -1,11 +1,25 @@
 <template>
   <a-row justify="center">
-    <a-col :xs="24" :md="14" :lg="10" :xl="8">
+    <a-col
+      :xs="24"
+      :md="14"
+      :lg="10"
+      :xl="8"
+    >
       <a-card title="登录">
-        <a-form :labelCol="{ span: 8 }">
-          <a-form-item label="用户Token" :validateStatus="tokenStatus" :help="tokenHelp">
-            <a-input v-model:value="token"></a-input>
-            <a-button type="link" @click="resetVisible = true">忘记Token？</a-button>
+        <a-form :label-col="{ span: 8 }">
+          <a-form-item
+            label="用户Token"
+            :validate-status="tokenStatus"
+            :help="tokenHelp"
+          >
+            <a-input v-model:value="token" />
+            <a-button
+              type="link"
+              @click="resetVisible = true"
+            >
+              忘记Token？
+            </a-button>
           </a-form-item>
           <template v-if="studentId !== ''">
             <a-form-item label="学号">
@@ -15,18 +29,34 @@
               <div>{{ studentName }}</div>
             </a-form-item>
           </template>
-          <a-form-item :wrapperCol="{ offset: 8 }">
-            <a-button type="primary" :loading="loading" @click="tryLogin">登录</a-button>
-            <a-button type="link"><a href="/signin-oidc">从OJ登录</a></a-button>
+          <a-form-item :wrapper-col="{ offset: 8 }">
+            <a-button
+              type="primary"
+              :loading="loading"
+              @click="tryLogin"
+            >
+              登录
+            </a-button>
+            <a-button type="link">
+              <a href="/signin-oidc">从OJ登录</a>
+            </a-button>
           </a-form-item>
         </a-form>
       </a-card>
     </a-col>
   </a-row>
-  <a-modal v-model:visible="resetVisible" title="重置登录 Token" :confirm-loading="resetLoading" @ok="handleReset">
-    <a-form :labelCol="{ span: 8 }">
-      <a-form-item label="学号" :help="resetHelp">
-        <a-input v-model:value="studentId"></a-input>
+  <a-modal
+    v-model:visible="resetVisible"
+    title="重置登录 Token"
+    :confirm-loading="resetLoading"
+    @ok="handleReset"
+  >
+    <a-form :label-col="{ span: 8 }">
+      <a-form-item
+        label="学号"
+        :help="resetHelp"
+      >
+        <a-input v-model:value="studentId" />
       </a-form-item>
     </a-form>
     <p>重置后的 Token 将会发送到邮箱中。</p>
@@ -58,10 +88,10 @@ const resetHelp = ref("");
 const handleReset = async () => {
   resetLoading.value = true;
   try {
-    let res = await resetToken(studentId.value);
-    resetHelp.value = res.data;
+    await resetToken(studentId.value);
+    resetHelp.value = "";
   } catch (error: any) {
-    resetHelp.value = error.message + ": " + (error.response?.data ?? "");
+    resetHelp.value = error.message + ": " + (await error.response?.text() ?? "");
   }
   resetLoading.value = false;
 };
@@ -86,17 +116,16 @@ async function tryLogin() {
       router.back();
     else
       message.success("登录成功");
-  } catch (e: any) {
+  } catch (error: any) {
     studentId.value = "";
     studentName.value = "";
     isAdmin.value = "false";
-    if (e.response?.status == 401) {
+    if (error.response?.status == 401) {
       tokenStatus.value = "error";
       tokenHelp.value = "Token不存在或已过期";
     } else {
       tokenStatus.value = "error";
-      tokenHelp.value = e.message;
-      console.error(e);
+      tokenHelp.value = error.message + "  " + (await error.response?.text());
     }
   } finally {
     loading.value = false;

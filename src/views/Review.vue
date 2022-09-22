@@ -2,44 +2,90 @@
   <div>
     <a-row>
       <a-col span="12">
-        <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 6 }">
+        <a-form
+          :label-col="{ span: 6 }"
+          :wrapper-col="{ span: 6 }"
+        >
           <a-form-item label="评阅人">
-            <a-select v-model:value="reviewerId" :options="reviewerOptions" :disabled="requesting"></a-select>
+            <a-select
+              v-model:value="reviewerId"
+              :options="reviewerOptions"
+              :disabled="requesting"
+            />
           </a-form-item>
           <a-form-item label="作业">
-            <assignment-selector v-model="assignmentId" v-model:name="assignmentName" :disabled="requesting">
-            </assignment-selector>
+            <assignment-selector
+              v-model="assignmentId"
+              v-model:name="assignmentName"
+              :disabled="requesting"
+            />
           </a-form-item>
         </a-form>
       </a-col>
       <a-col span="12">
-        <a-button type="primary" @click="downloadReview">下载作业压缩包</a-button>
+        <a-button
+          type="primary"
+          @click="downloadReview"
+        >
+          下载作业压缩包
+        </a-button>
       </a-col>
     </a-row>
 
-    <a-table v-show="dataSource.length > 0" :columns="columns" :data-source="dataSource" row-key="studentId"
-      expended-row-key="studentId">
+    <a-table
+      v-show="dataSource.length > 0"
+      :columns="columns"
+      :data-source="dataSource"
+      row-key="studentId"
+      expended-row-key="studentId"
+    >
       <template #grade="{ record }">
-        <a-select style="width: 60px" v-model:value="record.grade" :options="gradeOptions">
-        </a-select>
+        <a-select
+          v-model:value="record.grade"
+          style="width: 60px"
+          :options="gradeOptions"
+        />
       </template>
       <template #needCorrection="{ record }">
-        <object-selector v-model="record.needCorrection" :list="needCorrectionList" :nameSelector="x => x.display"
-          :equalComparer="problemEquals" style="width: 100%;"></object-selector>
+        <object-selector
+          v-model="record.needCorrection"
+          :list="needCorrectionList"
+          :name-selector="(x: MistakeDto) => x.display"
+          :equal-comparer="problemEquals"
+          style="width: 100%;"
+        />
       </template>
       <template #hasCorrected="{ record }">
-        <object-selector v-model="record.hasCorrected"
-          :list.once="uniqueProblemList((mistakes[record.studentId] ?? []).concat(record.hasCorrected))" :nameSelector="x => x.display"
-          :equalComparer="problemEquals" style="width: 100%;">
-        </object-selector>
+        <object-selector
+          v-model="record.hasCorrected"
+          :list="uniqueProblemList((mistakes[record.studentId] ?? []).concat(record.hasCorrected))"
+          :name-selector="(x: MistakeDto) => x.display"
+          :equal-comparer="problemEquals"
+          style="width: 100%;"
+        />
       </template>
       <template #expandedRowRender="{ record }">
-        <a-row type="flex" justify="space-around">
-          <a-col span="11" sm="24">
-            <a-input addon-before="额外评语" v-model:value="record.comment" />
+        <a-row
+          type="flex"
+          justify="space-around"
+        >
+          <a-col
+            span="11"
+            sm="24"
+          >
+            <a-input
+              v-model:value="record.comment"
+              addon-before="额外评语"
+            />
           </a-col>
-          <a-col span="11" sm="24">
-            <a-input addon-before="跟踪评价" v-model:value="record.track" />
+          <a-col
+            span="11"
+            sm="24"
+          >
+            <a-input
+              v-model:value="record.track"
+              addon-before="跟踪评价"
+            />
           </a-col>
         </a-row>
       </template>
@@ -50,16 +96,15 @@
 <script setup lang="ts">
 import { ref, Ref, reactive, watch, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
-import { debounce, zeroPadding, invokeDownload, localStorageVariable, Lock } from "../utils";
-import sha1 from "sha1";
+import { debounce, invokeDownload, localStorageVariable, Lock } from "../utils";
 import {
-  getMistakeInfo,
-  getReviewInfo,
-  postReviewInfo,
-  ReviewInfo,
+  getMistakes,
+  getReview,
+  updateReview,
+  getReviewArchieveUrl,
+  ReviewInfoDto,
   GradeDisplayStrings,
-  apiPrefix,
-  ProblemDTO,
+  MistakeDto,
   reviewers,
 } from "../DAL";
 import AssignmentSelector from "../components/AssignmentSelector.vue";
@@ -78,20 +123,19 @@ const MyRequestWrapper = async <T>(
     requesting.value = true;
     return await func();
   } catch (error: any) {
+    console.error(error)
     if (error.response?.status == 401) {
       router.push({ name: "Login", params: { returnIfSuccess: '1' } });
     } else if (error.response?.status === 403) {
       Modal.error({
-        title: () => error.message,
-        content: () => "需要管理员权限",
+        title: error.message,
+        content: "需要管理员权限",
       });
     } else {
       Modal.error({
-        title: () => error.message,
-        content: () => error.response?.data  ?? "出现意外的错误，建议刷新页面与服务器重新同步",
+        title: "出现意外的错误，建议刷新页面与服务器重新同步",
+        content: await error.response?.text() ?? "",
       });
-      if (typeof error.toJSON !== "undefined") console.error(error.toJSON);
-      else console.error(error);
     }
   } finally {
     requesting.value = false;
@@ -105,12 +149,12 @@ const reviewerOptions = reviewers.map(x => ({ value: x.id, label: x.name }));
 const assignmentId = localStorageVariable("assignmentId", "");
 const assignmentName = ref('')
 
-const mistakes: { [key: number]: Array<ProblemDTO> } = reactive({});
+const mistakes: { [key: number]: Array<MistakeDto> } = reactive({});
 
 onMounted(() =>
   MyRequestWrapper(async () => {
     let req = [
-      getMistakeInfo().then((list) =>
+      getMistakes().then((list) =>
         list.forEach((x) => (mistakes[x.studentId] = x.mistakes))
       ),
     ];
@@ -166,9 +210,9 @@ const needCorrectionList = computed(() =>
     display: `${assignmentName.value}.${i + 1}`,
   }))
 );
-const problemEquals = (x: ProblemDTO, y: ProblemDTO) =>
+const problemEquals = (x: MistakeDto, y: MistakeDto) =>
   x.assignmentId === y.assignmentId && x.problemId == y.problemId;
-const uniqueProblemList = (a: Array<ProblemDTO>): Array<ProblemDTO> => {
+const uniqueProblemList = (a: Array<MistakeDto>): Array<MistakeDto> => {
   let set = new Set()
   let max = Math.max(...a.map(x => x.problemId)) + 10
   return a.filter(x => {
@@ -179,11 +223,11 @@ const uniqueProblemList = (a: Array<ProblemDTO>): Array<ProblemDTO> => {
   })
 }
 
-let dataSource: Ref<ReviewInfo[]> = ref([]);
-let dataChanged: ReviewInfo[] = [];
+let dataSource: Ref<ReviewInfoDto[]> = ref([]);
+let dataChanged: ReviewInfoDto[] = [];
 const fetchReview = async () => {
   dataSource.value = [];
-  const resp = await getReviewInfo(assignmentId.value, reviewerId.value)
+  const resp = await getReview(assignmentId.value, reviewerId.value)
   resp.sort((a, b) => a.studentId - b.studentId);
   dataSource.value = resp.map((row) => {
     const rowRef = reactive(row);
@@ -196,44 +240,26 @@ const fetchReview = async () => {
     });
     return rowRef;
   });
-  UpdateFingerPrint();
 };
 
-const lastSync = ref("");
-const localFingerPrint = ref("");
-const UpdateFingerPrint = () => {
-  localFingerPrint.value = sha1(
-    JSON.stringify(dataSource.value).replace(/,'mistakes':\[.*?\]/g, "")
-  );
-  const now = new Date();
-  lastSync.value =
-    `${now.getMonth() + 1}.${now.getDate()} ` +
-    zeroPadding(now.getHours(), 2) +
-    zeroPadding(now.getMinutes(), 2) +
-    zeroPadding(now.getSeconds(), 2);
-};
 const SendChanges = debounce(async () => {
   const dataToSend = dataChanged;
   dataChanged = [];
   await MyRequestWrapper(() =>
-    postReviewInfo(assignmentId.value, dataToSend)
-      .then(() => {
-        UpdateFingerPrint();
-      })
-      .catch((e) => {
+    updateReview(assignmentId.value, dataToSend)
+      .catch(error => {
         const NotChanged = dataToSend.filter((row) =>
           dataChanged.every((changed) => row.studentId !== changed.studentId)
         );
         dataChanged = dataChanged.concat(NotChanged);
-        throw e;
+        throw error;
       })
   );
 }, 500);
 
-function downloadReview() {
+async function downloadReview() {
   invokeDownload(
-    apiPrefix +
-    `Review/Archieve?assignmentId=${assignmentId.value}&reviewerId=${reviewerId.value}`,
+    await getReviewArchieveUrl(assignmentId.value, reviewerId.value),
     `${assignmentId}.zip`
   );
 }

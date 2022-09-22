@@ -1,8 +1,10 @@
 import { ref, Ref, watch } from "vue"
 
-export const debounce = (func: Function, delay = 500) => {
+// eslint-disable-next-line
+export const debounce = (func: (...params: any[]) => void, delay = 500) => {
     let timer: number | null = null
-    return (...params: any) => {
+    // eslint-disable-next-line
+    return (...params: any[]) => {
         timer && window.clearTimeout(timer)
         timer = window.setTimeout(() => {
             func(...params)
@@ -12,8 +14,8 @@ export const debounce = (func: Function, delay = 500) => {
 }
 
 export function zeroPadding (x: number, length: number) : string {
-  let res = x.toString();
-  let diff = length - res.length;
+  const res = x.toString();
+  const diff = length - res.length;
   if (diff > 0)
     return "0".repeat(diff) + res;
   return res;
@@ -25,7 +27,7 @@ export function getUrlParam(param: string): string | undefined {
     return res ? res[1] : undefined
 }
 
-let refOfVariables = new Map()
+const refOfVariables = new Map()
 export function localStorageVariable(name: string, defaultValue: string): Ref<string> {
     if (refOfVariables.has(name)) return refOfVariables.get(name)
     const res = ref(localStorage.getItem(name) ?? defaultValue)
@@ -35,7 +37,7 @@ export function localStorageVariable(name: string, defaultValue: string): Ref<st
 }
 
 export function invokeDownload(url: string, filename: string | null = null) {
-    var a = document.createElement('a');
+    const a = document.createElement('a');
     a.href = url;
     if (typeof filename === 'string')
         a.download = filename;
@@ -52,6 +54,7 @@ export class Lock {
     }
 
     lock(): Promise<void> {
+        // eslint-disable-next-line
         return new Promise<void>((res, _) => {
             if (!this.locked) {
                 this.locked = true;
@@ -63,7 +66,7 @@ export class Lock {
     }
 
     unlock(): void {
-        let next = this.queue.shift();
+        const next = this.queue.shift();
         if (typeof next !== 'undefined') {
             next();
         } else {

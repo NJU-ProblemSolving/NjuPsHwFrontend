@@ -1,11 +1,14 @@
 <template>
-  <a-select :value="index" @update:value="updateIndex" :options="options" mode="multiple"
-    :token-separators="[',', ' ', ';']">
-  </a-select>
+  <a-select
+    :value="index"
+    :options="options"
+    mode="multiple"
+    :token-separators="[',', ' ', ';']"
+    @update:value="updateIndex"
+  />
 </template>
 
 <script setup lang="ts">
-import { computed } from "@vue/reactivity";
 import { onMounted, watch, Ref, ref } from "vue";
 
 const props = defineProps<{
@@ -35,7 +38,7 @@ const updateIndexByProps = () => {
     let i = -1;
     const equalComparer = props.equalComparer
     if (typeof equalComparer !== 'undefined')
-      i = cachedList.findIndex((y: any, index: number, obj: any[]) => equalComparer(x, y))
+      i = cachedList.findIndex((y) => equalComparer(x, y))
     else
       i = cachedList.indexOf(x);
     if (i !== -1) {

@@ -6,8 +6,3 @@ declare module '*.vue' {
   const component: DefineComponent<{}, {}, any>
   export default component
 }
-
-declare function sha1(str: string): string;
-declare module 'sha1' {
-  export default sha1
-}

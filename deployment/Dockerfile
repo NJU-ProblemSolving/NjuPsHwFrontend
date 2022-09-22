@@ -1,7 +1,10 @@
 FROM node:lts-alpine AS build
 
+ARG REVISION=unknown
+
 COPY . app/
 WORKDIR app/
+RUN sed -i "s/clientVersion = 'unknown'/clientVersion = '$REVISION'/" src/config.ts
 RUN npm install
 RUN npm run build
 

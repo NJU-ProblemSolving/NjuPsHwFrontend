@@ -1,32 +1,62 @@
 <template>
   <a-row>
-    <a-col span="12" offset="6" class="main">
+    <a-col
+      span="12"
+      offset="6"
+      class="main"
+    >
       <a-card title="提交作业">
-        <a-form ref="formRef" :labelCol="{ span: 4 }" :wrapperCol="{ span: 8 }" :model="formState" :rules="rules">
-          <a-form-item label="学号" name="studentId">
-            <a-input v-if="isAdmin === 'true'" v-model:value="studentId"></a-input>
-            <p v-else>{{ studentId }}</p>
+        <a-form
+          ref="formRef"
+          :label-col="{ span: 4 }"
+          :wrapper-col="{ span: 8 }"
+          :model="formState"
+          :rules="rules"
+        >
+          <a-form-item
+            label="学号"
+            name="studentId"
+          >
+            <a-input
+              v-if="isAdmin === 'true'"
+              v-model:value="studentId"
+            />
+            <div v-else>
+              {{ studentId }}
+            </div>
           </a-form-item>
-          <a-form-item label="作业编号" name="assignmentId">
-            <assignment-selector v-model="assignmentId"></assignment-selector>
+          <a-form-item
+            label="作业编号"
+            name="assignmentId"
+          >
+            <assignment-selector v-model="assignmentId" />
           </a-form-item>
-          <a-form-item label="作业文件" name="fileList">
-            <a-upload v-model:fileList="fileList" :beforeUpload="() => false" @change="fileList = fileList.slice(-1)">
+          <a-form-item
+            label="作业文件"
+            name="fileList"
+          >
+            <a-upload
+              v-model:fileList="fileList"
+              :before-upload="() => false"
+              @change="fileList = fileList.slice(-1)"
+            >
               <a-button>选择文件</a-button>
             </a-upload>
           </a-form-item>
-          <a-form-item :wrapperCol="{ offset: 4 }">
-            <a-button type="primary" :loading="requesting" @click="onSubmit">提交</a-button>
+          <a-form-item :wrapper-col="{ offset: 4 }">
+            <a-button
+              type="primary"
+              :loading="requesting"
+              @click="onSubmit"
+            >
+              提交
+            </a-button>
           </a-form-item>
         </a-form>
       </a-card>
     </a-col>
   </a-row>
 </template>
-
-<style scoped>
-
-</style>
 
 <script setup lang="ts">
 import { reactive, Ref, ref } from "vue";
@@ -39,7 +69,6 @@ import AssignmentSelector from '../components/AssignmentSelector.vue'
 const router = useRouter();
 
 let studentId = localStorageVariable("studentId", "");
-const studentName = localStorageVariable("studentName", "");
 const isAdmin = localStorageVariable("isAdmin", "false");
 if (isAdmin.value === "true") studentId = ref(studentId.value);
 if (studentId.value === "") router.push({ name: "Login", params: { returnIfSuccess: '1' } });
@@ -59,7 +88,7 @@ const rules = {
 const onSubmit = async () => {
   try {
     await formRef.value.validate();
-  } catch (e) {
+  } catch (error) {
     return;
   }
 
@@ -74,14 +103,17 @@ const onSubmit = async () => {
     formRef.value.resetFields();
     message.success('提交成功');
     router.push({ name: "Query" });
-  } catch (err: any) {
-    console.log(err)
+  } catch (error: any) {
     Modal.error({
-      title: () => err.message,
-      content: () => err.data ?? "",
+      title: error.message,
+      content: await error.response?.text() ?? "",
     })
   } finally {
     requesting.value = false;
   }
 }
 </script>
+
+<style scoped>
+
+</style>

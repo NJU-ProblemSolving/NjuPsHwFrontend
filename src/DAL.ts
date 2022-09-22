@@ -1,14 +1,13 @@
-import axios from 'axios'
-
-export const apiPrefix = '/api/'
-
-const instance = axios.create({
-    baseURL: '/api/',
-    timeout: 10000,
-    responseType: 'json',
-});
-
-instance.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+import {
+    Configuration, 
+    AssignmentApi, Assignment as AssignmentDto,
+    AccountApi, AccountInfo,
+    MistakeApi, MistakeDto, MistakesOfStudent,
+    ReviewApi, ReviewInfoDto,
+    StudentApi,
+    SubmissionApi, SubmissionDto,
+    VersionApi
+} from 'nju-ps-hw-api';
 
 export enum Grade {
     None,
@@ -45,99 +44,72 @@ export const reviewers = [
 ** Account
 */
 
-export interface AccountInfo {
-    id: number,
-    name: string,
-    isAdmin: boolean,
-}
+export type { AccountInfo };
+
+const config = new Configuration({ basePath: '' })
 
 export async function tryLoginByToken(token: string): Promise<AccountInfo> {
-    return (await instance.post<AccountInfo>(`Account/Login`, `"${token}"`, { headers: { 'Content-Type': 'application/json' } })).data
+    return new AccountApi(config).login(token)
+}
+
+export async function resetToken(studentId: number | string) {
+    return new StudentApi(config).resetToken(Number(studentId))
 }
 
 /*
 ** Assignment
 */
 
-export interface Assignment {
-    id: number,
-    name: number,
-    numberOfProblems: string,
-    deadline: string,
-}
+export type { AssignmentDto };
 
-export async function getAssignmentList(): Promise<Array<Assignment>> {
-    let res = await instance.get<Array<Assignment>>('Assignment')
-    return res.data
+export async function getAssignmentList(): Promise<Array<AssignmentDto>> {
+    return new AssignmentApi(config).getAssignments()
 }
 
 /*
 ** Mistake
 */
 
-export interface ProblemDTO {
-    assignmentId: number,
-    problemId: number,
-    display: string,
-}
+export type { MistakesOfStudent, MistakeDto };
 
-export interface MistakesOfStudent {
-    studentId: number,
-    mistakes: Array<ProblemDTO>,
-}
-
-export async function getMistakeInfo(): Promise<MistakesOfStudent[]> {
-    return (await instance.get<MistakesOfStudent[]>('Mistake')).data
+export async function getMistakes(): Promise<MistakesOfStudent[]> {
+    return new MistakeApi(config).getMistakes()
 }
 
 /*
 ** Review
 */
 
-export interface ReviewInfo {
-    studentId: number,
-    studentName: string,
-    submittedAt: string,
-    grade: Grade,
-    needCorrection: Array<ProblemDTO>,
-    hasCorrected: Array<ProblemDTO>,
-    comment: string,
-    track: string,
-}
+export type { ReviewInfoDto };
 
-export async function getReviewInfo(assignmentId: number | string, reviewerId: number | string): Promise<ReviewInfo[]> {
-    return (await instance.get<ReviewInfo[]>('Review', { params: { assignmentId, reviewerId } })).data
+export async function getReview(assignmentId: number | string, reviewerId: number | string): Promise<ReviewInfoDto[]> {
+    return new ReviewApi(config).getReview(Number(assignmentId), Number(reviewerId))
 }
-export async function postReviewInfo(assignmentId: number | string, data: ReviewInfo[]) {
-    await instance.post(`Review?assignmentId=${assignmentId}`, data)
+export async function updateReview(assignmentId: number | string, data: ReviewInfoDto[]) {
+    return new ReviewApi(config).updateReview(Number(assignmentId), data)
+}
+export async function getReviewArchieveUrl(assignmentId: number | string, reviewerId: number | string) {
+    return `api/Review/${assignmentId}/Archieve?reviewerId=${reviewerId}`
 }
 
 /*
-** Student
+** Submission
 */
 
-export interface StudentSubmissionSummary {
-    assignmentId: number,
-    submittedAt: string,
-    grade: Grade,
-    needCorrection: Array<ProblemDTO>,
-    hasCorrected: Array<ProblemDTO>,
-    comment: string,
-}
-export async function getSubmissionSummary(studentId: number | string): Promise<StudentSubmissionSummary[]> {
-    return (await instance.get<StudentSubmissionSummary[]>(`Student/${studentId}/SubmissionSummary`)).data
+export type { SubmissionDto }
+
+export async function getSubmissionSummary(studentId: number | string): Promise<SubmissionDto[]> {
+    return new SubmissionApi(config).getSubmissionSummary(Number(studentId))
 }
 
 export async function submitAssignment(studentId: number | string, assignmentId: number | string, file: File) {
-    if (file.size > 3 * 1024 * 1024) throw { message: "上传文件过大" };
-
-    const formData = new FormData();
-    formData.append("assignmentId", assignmentId.toString());
-    formData.append("file", file);
-
-    await instance.post(`Student/${studentId}/Submit`, formData)
+    return new SubmissionApi(config).submit(Number(studentId), Number(assignmentId), undefined, file)
 }
 
-export async function resetToken(studentId: number | string) {
-    return await instance.post(`Student/${studentId}/ResetToken`)
+/*
+** Version
+*/
+
+export async function getServerVersion(): Promise<string> {
+    return new VersionApi(config).getServerRevision()
 }

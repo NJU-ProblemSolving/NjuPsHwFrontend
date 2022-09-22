@@ -20,7 +20,7 @@
         }
 
         let xhr = new XMLHttpRequest();
-        xhr.open('GET', '/api/Account/LoginJwt', false);
+        xhr.open('POST', '/api/Account/LoginJwt', false);
         xhr.setRequestHeader('Authorization', 'Bearer ' + dict['id_token']);
         xhr.send(null);
 
@@ -30,7 +30,7 @@
             localStorage.setItem('token', res['token']);
             location.replace('/');
         } else {
-            document.write('登陆失败<br/>' + xhr.statusText + '<br/>' + xhr.responseText);
+            document.write('登陆失败：' + xhr.status + '<br/>' + xhr.responseText);
         }
     </script>
 </body>
