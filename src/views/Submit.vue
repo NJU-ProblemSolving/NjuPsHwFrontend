@@ -76,7 +76,7 @@
 import moment from "moment";
 import { reactive, Ref, ref } from "vue";
 import { useRouter } from "vue-router";
-import { submitAssignment } from "../DAL";
+import { AssignmentDto, submitAssignment } from "../DAL";
 import { localStorageVariable } from "../utils";
 import { Modal, message } from "ant-design-vue";
 import AssignmentSelector from '../components/AssignmentSelector.vue'
@@ -89,7 +89,7 @@ if (isAdmin.value === "true") studentId = ref(studentId.value);
 if (studentId.value === "") router.push({ name: "Login", params: { returnIfSuccess: '1' } });
 
 const assignmentId = ref("");
-const assignmentInfo = ref({});
+const assignmentInfo: Ref<AssignmentDto> = ref({id: 0, name: '', deadline: new Date(2022, 1, 1), numberOfProblems: 0});
 const requesting = ref(false);
 
 const fileList: Ref<Array<{ originFileObj: File }>> = ref([]);
