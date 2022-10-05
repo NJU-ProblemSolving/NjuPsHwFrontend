@@ -28,7 +28,7 @@
               <template #title>
                 {{ record.submittedAt }}
               </template>
-              {{ moment(record.submittedAt).format('M-DD HH:mm') }}
+              {{ moment(record.submittedAt).format('MM-DD HH:mm') }}
             </a-tooltip>
           </template>
           <template #grade="{ record }">

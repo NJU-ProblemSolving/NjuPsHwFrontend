@@ -29,7 +29,21 @@
             label="作业编号"
             name="assignmentId"
           >
-            <assignment-selector v-model="assignmentId" />
+            <assignment-selector
+              v-model="assignmentId"
+              v-model:info="assignmentInfo"
+            />
+          </a-form-item>
+          <a-form-item
+            label="截止时间"
+            name="deadline"
+          >
+            <a-tooltip>
+              <template #title>
+                {{ assignmentInfo.deadline }}
+              </template>
+              {{ assignmentInfo.deadline ? moment(assignmentInfo.deadline).format('MM-DD HH:mm') : '' }}
+            </a-tooltip>
           </a-form-item>
           <a-form-item
             label="作业文件"
@@ -59,6 +73,7 @@
 </template>
 
 <script setup lang="ts">
+import moment from "moment";
 import { reactive, Ref, ref } from "vue";
 import { useRouter } from "vue-router";
 import { submitAssignment } from "../DAL";
@@ -74,6 +89,7 @@ if (isAdmin.value === "true") studentId = ref(studentId.value);
 if (studentId.value === "") router.push({ name: "Login", params: { returnIfSuccess: '1' } });
 
 const assignmentId = ref("");
+const assignmentInfo = ref({});
 const requesting = ref(false);
 
 const fileList: Ref<Array<{ originFileObj: File }>> = ref([]);
@@ -90,6 +106,23 @@ const onSubmit = async () => {
     await formRef.value.validate();
   } catch (error) {
     return;
+  }
+
+  console.log(assignmentInfo.value)
+  if (assignmentInfo.value.deadline) {
+    if (new Date() >= assignmentInfo.value.deadline) {
+      let ok = await new Promise((res, rej) =>
+        Modal.confirm({
+          title: '确认提交',
+          content: '你正在提交一份已经截止的作业，这将会被视为过时补交并扣除一定的分数。确定吗？',
+          onOk: () => res(true),
+          onCancel: () => res(false),
+        })
+      );
+      if (!ok) {
+        return;
+      }
+    }
   }
 
   console.log(fileList.value);

@@ -17,12 +17,13 @@ const props = defineProps<{
   disabled?: boolean,
 }>();
 
-const emits = defineEmits(["update:modelValue", "update:name"]);
+const emits = defineEmits(["update:modelValue", "update:name", "update:info"]);
 
 const assignmentId = ref(Number(props.modelValue))
 watch(assignmentId, () => {
   emits('update:modelValue', assignmentId.value);
   emits('update:name', assignmentMap.get(assignmentId.value)?.name);
+  emits('update:info', assignmentMap.get(assignmentId.value));
 });
 
 const loading = ref(true);
