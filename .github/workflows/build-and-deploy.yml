@@ -36,7 +36,8 @@ jobs:
 
       - name: Download NjuPsHwApi
         run: |
-          wget https://github.com/Undefined01/NjuPsHwServer/releases/download/v0.6/ts-client.zip && \
+          APIVERSION="$(cat APIVERSION.txt)"
+          wget "https://github.com/Undefined01/NjuPsHwServer/releases/download/${APIVERSION}/ts-client.zip"
           unzip ts-client.zip
 
       - name: Login to Docker Hub

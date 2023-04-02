@@ -23,25 +23,39 @@
           :data-source="summary"
           :pagination="false"
         >
-          <template #time="{ record }">
-            <a-tooltip>
-              <template #title>
-                {{ record.submittedAt }}
-              </template>
-              {{ moment(record.submittedAt).format('MM-DD HH:mm') }}
-            </a-tooltip>
-          </template>
-          <template #grade="{ record }">
-            {{ GradeDisplayStrings[record.grade] }}
-          </template>
-          <template #list="{ text }">
-            <a-tag
-              v-for="item in text"
-              :key="item"
-              :color="hasCorrected.has(item.display) ? 'green' : 'blue'"
-            >
-              {{ item.display }}
-            </a-tag>
+          <template #bodyCell="{ column, record, text }">
+            <template v-if="column.key === 'assignmentName'">
+              <span>
+                {{ record.assignmentName }}
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="() => downloadAttachments(record.assignmentId)"
+                >
+                  <template #icon><download-outlined /></template>
+                </a-button>
+              </span>
+            </template>
+            <template v-else-if="column.key === 'submittedAt'">
+              <a-tooltip>
+                <template #title>
+                  {{ record.submittedAt }}
+                </template>
+                {{ moment(record.submittedAt).format('MM-DD HH:mm') }}
+              </a-tooltip>
+            </template>
+            <template v-else-if="column.key === 'grade'">
+              {{ GradeDisplayStrings[record.grade] }}
+            </template>
+            <template v-else-if="column.key === 'needCorrection' || column.key === 'hasCorrected'">
+              <a-tag
+                v-for="item in text"
+                :key="item"
+                :color="hasCorrected.has(item.display) ? 'green' : 'blue'"
+              >
+                {{ item.display }}
+              </a-tag>
+            </template>
           </template>
         </a-table>
       </a-card>
@@ -52,14 +66,16 @@
 <script setup lang="ts">
 import moment from "moment";
 import { Modal } from "ant-design-vue";
+import { DownloadOutlined } from "@ant-design/icons-vue";
 import { onMounted, Ref, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
   getSubmissionSummary,
+  getAttachmentsUrl,
   GradeDisplayStrings,
   SubmissionDto,
 } from "../DAL";
-import { localStorageVariable } from "../utils";
+import { localStorageVariable, invokeDownload } from "../utils";
 
 const router = useRouter();
 
@@ -72,30 +88,32 @@ const columns = [
   {
     title: "作业",
     dataIndex: "assignmentName",
+    key: 'assignmentName',
   },
   {
     title: "提交时间",
     dataIndex: "submittedAt",
-    slots: { customRender: "time" },
+    key: 'submittedAt',
   },
   {
     title: "评分",
     dataIndex: "grade",
-    slots: { customRender: "grade" },
+    key: 'grade',
   },
   {
     title: "需要订正",
     dataIndex: "needCorrection",
-    slots: { customRender: "list" },
+    key: 'needCorrection',
   },
   {
     title: "接受的订正",
     dataIndex: "hasCorrected",
-    slots: { customRender: "list" },
+    key: 'hasCorrected',
   },
   {
     title: "评语",
     dataIndex: "comment",
+    key: 'comment',
   },
 ];
 
@@ -123,6 +141,12 @@ async function query() {
       });
     }
   }
+}
+
+async function downloadAttachments(assignmentId: string) {
+  invokeDownload(
+    await getAttachmentsUrl(studentId.value, assignmentId)
+  );
 }
 
 onMounted(query);

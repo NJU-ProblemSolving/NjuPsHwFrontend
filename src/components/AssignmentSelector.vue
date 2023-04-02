@@ -9,7 +9,7 @@
 
 <script setup lang="ts">
 import { onMounted, watch, Ref, ref } from "vue";
-import { AssignmentDto, getAssignmentList } from "../DAL";
+import { AssignmentDto, getAssignmentList } from "@/DAL";
 
 const props = defineProps<{
   modelValue: number | string,

@@ -35,42 +35,57 @@ export function localStorageVariable(name: string, defaultValue: string): Ref<st
     refOfVariables.set(name, res)
     return res
 }
+export function localStorageVariableGeneric<T>(name: string, defaultValue: () => T): Ref<T> {
+    if (refOfVariables.has(name)) return refOfVariables.get(name)
+    const valueStr = localStorage.getItem(name)
+    let res: Ref<T>
+    if (valueStr !== null) {
+        res = ref(JSON.parse(valueStr))
+    } else {
+        res = ref(defaultValue()) as Ref<T>
+    }
+    watch(res, (value) => value === null ? localStorage.removeItem(name) : localStorage.setItem(name, JSON.stringify(value)))
+    refOfVariables.set(name, res)
+    return res
+}
 
 export function invokeDownload(url: string, filename: string | null = null) {
-    const a = document.createElement('a');
-    a.href = url;
-    if (typeof filename === 'string')
-        a.download = filename;
-    a.click();
+    const a = document.createElement('a')
+    a.href = url
+    if (typeof filename === 'string') {
+        a.download = filename
+    } else {
+        a.download = ''
+    }
+    a.click()
 }
 
 export class Lock {
-    locked: boolean;
-    queue: Array<() => void>;
+    locked: boolean
+    queue: Array<() => void>
 
     constructor() {
-        this.locked = false;
-        this.queue = [];
+        this.locked = false
+        this.queue = []
     }
 
     lock(): Promise<void> {
-        // eslint-disable-next-line
-        return new Promise<void>((res, _) => {
+        return new Promise<void>(res => {
             if (!this.locked) {
-                this.locked = true;
-                res();
-                return;
+                this.locked = true
+                res()
+                return
             }
-            this.queue.push(res);
-        });
+            this.queue.push(res)
+        })
     }
 
     unlock(): void {
-        const next = this.queue.shift();
+        const next = this.queue.shift()
         if (typeof next !== 'undefined') {
-            next();
+            next()
         } else {
-            this.locked = false;
+            this.locked = false
         }
     }
 }

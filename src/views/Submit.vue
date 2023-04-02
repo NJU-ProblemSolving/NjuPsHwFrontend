@@ -111,7 +111,7 @@ const onSubmit = async () => {
   console.log(assignmentInfo.value)
   if (assignmentInfo.value.deadline) {
     if (new Date() >= assignmentInfo.value.deadline) {
-      let ok = await new Promise((res, rej) =>
+      let ok = await new Promise(res =>
         Modal.confirm({
           title: '确认提交',
           content: '你正在提交一份已经截止的作业，这将会被视为过时补交并扣除一定的分数。确定吗？',

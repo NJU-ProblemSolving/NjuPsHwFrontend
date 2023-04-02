@@ -6,7 +6,7 @@ import {
     ReviewApi, ReviewInfoDto,
     StudentApi,
     SubmissionApi, SubmissionDto,
-    VersionApi
+    ConfigApi
 } from 'nju-ps-hw-api';
 
 export enum Grade {
@@ -102,14 +102,18 @@ export async function getSubmissionSummary(studentId: number | string): Promise<
     return new SubmissionApi(config).getSubmissionSummary(Number(studentId))
 }
 
+export async function getAttachmentsUrl(studentId: number | string, assignmentId: number | string): Promise<string> {
+    return `api/Submission/Attachments?studentId=${studentId}&assignmentId=${assignmentId}`
+}
+
 export async function submitAssignment(studentId: number | string, assignmentId: number | string, file: File) {
     return new SubmissionApi(config).submit(Number(studentId), Number(assignmentId), undefined, file)
 }
 
 /*
-** Version
+** Config
 */
 
 export async function getServerVersion(): Promise<string> {
-    return new VersionApi(config).getServerRevision()
+    return new ConfigApi(config).getServerRevision()
 }

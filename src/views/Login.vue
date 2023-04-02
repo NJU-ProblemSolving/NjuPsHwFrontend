@@ -28,6 +28,12 @@
             <a-form-item label="姓名">
               <div>{{ studentName }}</div>
             </a-form-item>
+            <a-form-item
+              v-if="isAdmin === 'false'"
+              label="助教"
+            >
+              <div>{{ reviewerName }}</div>
+            </a-form-item>
           </template>
           <a-form-item :wrapper-col="{ offset: 8 }">
             <a-button
@@ -79,6 +85,7 @@ const tokenHelp = ref("");
 const studentId = localStorageVariable("studentId", "");
 const studentName = localStorageVariable("studentName", "");
 const isAdmin = localStorageVariable("isAdmin", "false");
+const reviewerName = localStorageVariable("reviewerName", "");
 
 const loading = ref(false);
 
@@ -103,13 +110,11 @@ if (token.value !== '') {
 async function tryLogin() {
   try {
     loading.value = true;
-    studentId.value = "";
-    studentName.value = "";
-    isAdmin.value = "false";
     let info = await tryLoginByToken(token.value);
     studentId.value = info.id.toString();
     studentName.value = info.name;
     isAdmin.value = info.isAdmin.toString();
+    reviewerName.value = info.reviewerName;
     tokenStatus.value = "";
     tokenHelp.value = "";
     if (route.params['returnIfSuccess'] === '1')

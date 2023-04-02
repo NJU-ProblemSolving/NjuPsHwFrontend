@@ -11,35 +11,34 @@ export default defineConfig({
     vue(),
     eslintPlugin({ fix: true }),
     importToCDN({
-      prodUrl: 'https://cdn.staticfile.org/{name}/{version}/{path}',
-      // prodUrl: 'https://cdn.jsdelivr.net/npm/{name}@{version}/dist/{path}',
+      // prodUrl: 'https://cdn.staticfile.org/{name}/{version}/{path}',
+      prodUrl: 'https://cdn.jsdelivr.net/npm/{name}@{version}/{path}',
       modules: [
         {
           name: 'vue',
           var: 'Vue',
-          path: 'vue.global.prod.min.js',
+          path: 'dist/vue.global.prod.min.js',
         },
         {
           name: 'vue-router',
           var: 'VueRouter',
-          path: 'vue-router.global.prod.min.js',
+          path: 'dist/vue-router.global.prod.min.js',
         },
         {
-          name: 'ant-design-vue',
-          var: 'antd',
-          path: 'antd.js',
-          css: 'antd.min.css',
+          name: 'dayjs',
+          var: 'dayjs',
+          path: ['dayjs.min.js', 'plugin/customParseFormat.js', 'plugin/weekday.js', 'plugin/localeData.js', 'plugin/weekOfYear.js', 'plugin/weekYear.js', 'plugin/advancedFormat.js'],
         },
-      ]
-    }),
-    importToCDN({
-      prodUrl: 'https://cdn.staticfile.org/moment.js/{version}/{path}',
-      // prodUrl: 'https://cdn.jsdelivr.net/npm/{name}@{version}/dist/{path}',
-      modules: [
         {
           name: 'moment',
           var: 'moment',
           path: 'moment.min.js',
+        },
+        {
+          name: 'ant-design-vue',
+          var: 'antd',
+          path: 'dist/antd.min.js',
+          css: 'dist/antd.min.css',
         },
       ]
     }),
@@ -48,6 +47,16 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, 'src'),
     },
+  },
+  optimizeDeps: {
+    include: [
+      '@ant-design/icons-vue',
+      'lodash-es',
+      'dayjs',
+      'vue',
+      'vue-router',
+      'async-validator',
+    ],
   },
   server: {
     proxy: {

@@ -39,30 +39,44 @@
       row-key="studentId"
       expended-row-key="studentId"
     >
-      <template #grade="{ record }">
-        <a-select
-          v-model:value="record.grade"
-          style="width: 60px"
-          :options="gradeOptions"
-        />
-      </template>
-      <template #needCorrection="{ record }">
-        <object-selector
-          v-model="record.needCorrection"
-          :list="needCorrectionList"
-          :name-selector="(x: MistakeDto) => x.display"
-          :equal-comparer="problemEquals"
-          style="width: 100%;"
-        />
-      </template>
-      <template #hasCorrected="{ record }">
-        <object-selector
-          v-model="record.hasCorrected"
-          :list="uniqueProblemList((mistakes[record.studentId] ?? []).concat(record.hasCorrected))"
-          :name-selector="(x: MistakeDto) => x.display"
-          :equal-comparer="problemEquals"
-          style="width: 100%;"
-        />
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.key === 'studentName'">
+          <span>
+            {{ record.studentName }}
+            <a-button
+              type="text"
+              size="small"
+              @click="() => downloadAttachments(record.studentId)"
+            >
+              <template #icon><download-outlined /></template>
+            </a-button>
+          </span>
+        </template>
+        <template v-if="column.key === 'grade'">
+          <a-select
+            v-model:value="record.grade"
+            style="width: 60px"
+            :options="gradeOptions"
+          />
+        </template>
+        <template v-if="column.key === 'needCorrection'">
+          <object-selector
+            v-model="record.needCorrection"
+            :list="needCorrectionList"
+            :name-selector="(x: MistakeDto) => x.display"
+            :equal-comparer="problemEquals"
+            style="width: 100%;"
+          />
+        </template>
+        <template v-if="column.key === 'hasCorrected'">
+          <object-selector
+            v-model="record.hasCorrected"
+            :list="uniqueProblemList((mistakes[record.studentId] ?? []).concat(record.hasCorrected))"
+            :name-selector="(x: MistakeDto) => x.display"
+            :equal-comparer="problemEquals"
+            style="width: 100%;"
+          />
+        </template>
       </template>
       <template #expandedRowRender="{ record }">
         <a-row
@@ -97,9 +111,11 @@
 import { ref, Ref, reactive, watch, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { debounce, invokeDownload, localStorageVariable, Lock } from "../utils";
+import { DownloadOutlined } from "@ant-design/icons-vue";
 import {
   getMistakes,
   getReview,
+  getAttachmentsUrl,
   updateReview,
   getReviewArchieveUrl,
   ReviewInfoDto,
@@ -183,19 +199,16 @@ const columns = [
     title: "评分",
     dataIndex: "grade",
     key: "grade",
-    slots: { customRender: "grade" },
   },
   {
     title: "需订正",
     dataIndex: "needCorrection",
     key: "needCorrection",
-    slots: { customRender: "needCorrection" },
   },
   {
     title: "已订正",
     dataIndex: "hasCorrected",
     key: "hasCorrected",
-    slots: { customRender: "hasCorrected" },
   },
 ];
 
@@ -261,6 +274,12 @@ async function downloadReview() {
   invokeDownload(
     await getReviewArchieveUrl(assignmentId.value, reviewerId.value),
     `${assignmentId}.zip`
+  );
+}
+
+async function downloadAttachments(studentId: string) {
+  invokeDownload(
+    await getAttachmentsUrl(studentId, assignmentId.value)
   );
 }
 </script>
