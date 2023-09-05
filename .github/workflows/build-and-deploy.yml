@@ -2,12 +2,23 @@ name: Build and Deploy to Kubernetes
 on:
   push:
     branches:
-      - main
-      - develop
+      - "**"
+    tags:
+      - "**"
+  pull_request:
+    branches:
+      - "**"
 
 defaults:
   run:
     shell: bash
+
+env:
+  deploy_environment: >
+    {
+      "refs/heads/main": "prod",
+      "refs/heads/develop": "dev"
+    }
 
 jobs:
   build:
@@ -17,6 +28,7 @@ jobs:
       revision: ${{ steps.info.outputs.revision }}
       reponame: ${{ steps.info.outputs.reponame }}
       reponame_lowercase: ${{ steps.info.outputs.reponame_lowercase }}
+      deploy_environment: ${{ steps.info.outputs.deploy_environment }}
     steps:
       - uses: actions/checkout@v3
 
@@ -27,12 +39,24 @@ jobs:
           date="$(git log -1 --pretty='format:%cd' --date=short 2>/dev/null)"
           hash="$(git log -1 --pretty='format:%h' 2>/dev/null)"
           test "$tag" && revision="$tag-$hash" || revision="$date-$hash"
-          echo "::set-output name=tag::$tag"
-          echo "::set-output name=revision::$revision"
+          echo "tag=$tag"
+          echo "revision=$revision"
+          echo "deploy_environment=$(echo '${{ env.deploy_environment }}' | jq -r '."${{ github.ref }}"')"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "deploy_environment=$(echo '${{ env.deploy_environment }}' | jq -r '."${{ github.ref }}"')" >> "$GITHUB_OUTPUT"
           test "$reponame" || reponame="${GITHUB_REPOSITORY##*/}"
           test "$reponame_lowercase" || reponame_lowercase="${reponame,,}"
-          echo "::set-output name=reponame::$reponame"
-          echo "::set-output name=reponame_lowercase::$reponame_lowercase"
+          echo "reponame=$reponame"
+          echo "reponame_lowercase=$reponame_lowercase"
+          echo "reponame=$reponame" >> "$GITHUB_OUTPUT"
+          echo "reponame_lowercase=$reponame_lowercase" >> "$GITHUB_OUTPUT"
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: '${{ secrets.DOCKER_HUB_USERNAME }}'
+          password: '${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}'
 
       - name: Download NjuPsHwApi
         run: |
@@ -40,32 +64,22 @@ jobs:
           wget "https://github.com/Undefined01/NjuPsHwServer/releases/download/${APIVERSION}/ts-client.zip"
           unzip ts-client.zip
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: '${{ secrets.DOCKER_HUB_USERNAME }}'
-          password: '${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}'
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
           context: ./
           file: ./deployment/Dockerfile
           build-args: REVISION=${{ steps.info.outputs.revision }}
-          builder: '${{ steps.buildx.outputs.name }}'
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: |
+            ${{ secrets.DOCKER_HUB_USERNAME }}/${{ steps.info.outputs.reponame_lowercase }}:${{ github.ref_name }}
             ${{ secrets.DOCKER_HUB_USERNAME }}/${{ steps.info.outputs.reponame_lowercase }}:${{ steps.info.outputs.revision }}
-          cache-from: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/${{ steps.info.outputs.reponame_lowercase }}:buildcache
-          cache-to: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/${{ steps.info.outputs.reponame_lowercase }}:buildcache,mode=max
 
-  deploy-dev:
-    if: github.ref == 'refs/heads/develop'
-    runs-on: ubuntu-latest
+  deploy:
     needs: build
-    environment: dev
+    if: ${{ needs.build.outputs.deploy_environment != 'null' }}
+    runs-on: ubuntu-latest
+    environment: ${{ needs.build.outputs.deploy_environment }}
     steps:
       - uses: actions/checkout@v3
 
@@ -73,36 +87,12 @@ jobs:
       - uses: azure/k8s-set-context@v3
         with:
           method: kubeconfig
-          kubeconfig: ${{ secrets.KUBECONFIG }}
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
 
       - name: Deploy to Kubernetes
         uses: Azure/k8s-deploy@v4
         with:
-          namespace: njupshw-dev
-          manifests: |
-            deployment/deployment.yml
-            deployment/service.yml
-          images:
-            ${{ secrets.DOCKER_HUB_USERNAME }}/${{ needs.build.outputs.reponame_lowercase }}:${{ needs.build.outputs.revision }}
-
-  deploy-prod:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    needs: build
-    environment: prod
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: azure/setup-kubectl@v3
-      - uses: azure/k8s-set-context@v3
-        with:
-          method: kubeconfig
-          kubeconfig: ${{ secrets.KUBECONFIG }}
-
-      - name: Deploy to Kubernetes
-        uses: Azure/k8s-deploy@v4
-        with:
-          namespace: njupshw
+          namespace: ${{ secrets.KUBE_NAMESPACE }}
           manifests: |
             deployment/deployment.yml
             deployment/service.yml
