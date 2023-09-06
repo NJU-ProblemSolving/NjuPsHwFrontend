@@ -24,19 +24,19 @@ export const GradeDisplayStrings = ['-', 'A', 'A-', 'B', 'B-', 'C', 'D'];
 export const reviewers = [
     {
         id: "1",
-        name: "李晗",
+        name: "陈子元",
     },
     {
         id: "2",
-        name: "桑百惠",
+        name: "付博",
     },
     {
         id: "3",
-        name: "赵超懿",
+        name: "缪天顺",
     },
     {
         id: "4",
-        name: "姚梦雨",
+        name: "赵欣玥",
     },
 ];
 

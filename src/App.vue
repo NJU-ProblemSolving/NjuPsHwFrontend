@@ -39,7 +39,7 @@
       <router-view />
     </a-layout-content>
     <a-layout-footer style="text-align: center">
-      <p>21级问题求解助教团队</p>
+      <p>23级问题求解助教团队</p>
       <a-space :size="20">
         <span>Client: {{ clientVersion }}</span>
         <span>Server: {{ serverVersion }}</span>
