@@ -61,7 +61,7 @@ jobs:
       - name: Download NjuPsHwApi
         run: |
           APIVERSION="$(cat APIVERSION.txt)"
-          wget "https://github.com/Undefined01/NjuPsHwServer/releases/download/${APIVERSION}/ts-client.zip"
+          wget "https://github.com/NJU-ProblemSolving/NjuPsHwServer/releases/download/${APIVERSION}/ts-client.zip"
           unzip ts-client.zip
 
       - name: Build and push
