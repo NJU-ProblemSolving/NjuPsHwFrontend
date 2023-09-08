@@ -148,10 +148,18 @@ const MyRequestWrapper = async <T>(
         content: "需要管理员权限",
       });
     } else {
-      Modal.error({
-        title: "出现意外的错误，建议刷新页面与服务器重新同步",
-        content: await error.response?.text() ?? "",
-      });
+      if(dataSource.value.length==0){
+        Modal.error({
+          title: "后台没有作业信息",
+          content: await error.response?.text() ?? "",
+        });
+      }
+      else{
+        Modal.error({
+          title: "出现意外的错误，建议刷新页面与服务器重新同步"+"num:"+Number(error.response?.status).toString(),
+          content: await error.response?.text() ?? "",
+        });
+      }
     }
   } finally {
     requesting.value = false;

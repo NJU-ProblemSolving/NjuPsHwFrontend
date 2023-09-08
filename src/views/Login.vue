@@ -128,9 +128,12 @@ async function tryLogin() {
     if (error.response?.status == 401) {
       tokenStatus.value = "error";
       tokenHelp.value = "Token不存在或已过期";
+    } else if (token.value.length == 0){
+      tokenStatus.value = "error";
+      tokenHelp.value = "Token不能为空";
     } else {
       tokenStatus.value = "error";
-      tokenHelp.value = error.message + "  " + (await error.response?.text());
+      tokenHelp.value = error.message + "- - -" + (await error.response?.text()) + "- - -" + token.value + "- - -";
     }
   } finally {
     loading.value = false;

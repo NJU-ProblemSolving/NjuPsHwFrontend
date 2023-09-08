@@ -86,7 +86,12 @@ const router = useRouter();
 let studentId = localStorageVariable("studentId", "");
 const isAdmin = localStorageVariable("isAdmin", "false");
 if (isAdmin.value === "true") studentId = ref(studentId.value);
-if (studentId.value === "") router.push({ name: "Login", params: { returnIfSuccess: '1' } });
+if (studentId.value === "") {
+  const token = localStorageVariable("token", "");
+  if(token.value.length==0)
+    Modal.error({title: "请先登录",});
+  router.push({ name: "Login", params: { returnIfSuccess: '1' } });
+}
 
 const assignmentId = ref("");
 const assignmentInfo: Ref<AssignmentDto> = ref({id: 0, name: '', deadline: new Date(2022, 1, 1), numberOfProblems: 0});

@@ -68,7 +68,8 @@ export default defineConfig({
     proxy: {
       '/api': {
         // target: 'https://hw.problemsolving.top/',
-        target: 'http://t.njups.top',
+        // target: 'https://t.njups.top',
+        target: 'https://h.lihan.fun/',
         changeOrigin: true,
       }
     }
